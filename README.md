@@ -6,13 +6,13 @@ Tracker patrimonial personal (single-user) para consolidar cripto, acciones, est
 
 | Capa | Tecnología |
 |------|------------|
-| UI | Next.js 16 App Router + React 19 + Tailwind CSS 4 |
+| UI | Next.js App Router + React 19 + Tailwind CSS 4 |
 | Componentes | shadcn-style (Radix) + Recharts |
 | Backend | Next.js Server Actions + Route Handlers |
 | Validación | Zod |
 | ORM / DB | Drizzle ORM + LibSQL (SQLite local → Turso en prod) |
 | Auth | Auth.js (next-auth v5) credentials, single-user |
-| Tooling | TypeScript, tsx, drizzle-kit |
+| Deploy | Vercel |
 
 ## Quick start
 
@@ -25,7 +25,8 @@ npm run db:seed
 npm run dev
 ```
 
-Abrí http://localhost:3000 — login con `AUTH_USERNAME` / `AUTH_PASSWORD` de `.env.local`.
+Abrí http://localhost:3000 — login con `AUTH_USERNAME` / `AUTH_PASSWORD` de `.env.local`
+(defaults de ejemplo: `rene` / `patrimonio2026`).
 
 ## Scripts
 
@@ -36,27 +37,31 @@ Abrí http://localhost:3000 — login con `AUTH_USERNAME` / `AUTH_PASSWORD` de `
 | `npm run db:push` | Aplica schema a SQLite/Turso |
 | `npm run db:seed` | Seed Berchatti + assets base + FX |
 | `npm run db:studio` | Drizzle Studio |
+| `npx tsx scripts/import-sheet-csv.ts <csv>` | Stub import CSV (parsers en Fase 2) |
 
 ## Estructura
 
 ```
 src/
   app/(app)/     # dashboard, transactions, land, snapshots, settings
-  components/    # UI, forms, charts, layout
+  components/    # UI, forms, charts, layout, land tabs
   lib/
     db/          # schema Drizzle tipado
-    services/    # portfolio, land, snapshot (business logic)
+    services/    # portfolio, land, snapshot, fx
     actions.ts   # Server Actions
     auth.ts      # Auth.js
     validators.ts
 scripts/seed.ts
+scripts/import-sheet-csv.ts
+vercel.json
 ```
 
 ## Fase actual (P0 / Fase 0–1)
 
-- Auth single-user
+- Auth single-user (credentials)
 - CRUD transacciones financieras
-- CRUD pagos de terrenos + cronograma Berchatti (seed)
+- CRUD pagos de terrenos + tabs Contrato/Pagos/Cronograma/Estado
+- Seed Berchatti (M-176-15 / M-176-16)
 - Dashboard multi-moneda (toggle USD/EUR/BOB)
 - Snapshots mensuales manuales
 - Catálogo de activos + FX viewer
@@ -65,23 +70,25 @@ scripts/seed.ts
 
 ```bash
 cd portfolio-tracker
-git init
-git add .
-git commit -m "Initial commit: portfolio tracker Phase 0/1"
-git branch -M main
+# ya hay commit en branch cursor/portfolio-tracker-phase0-2937
 git remote add origin git@github.com:Renevc14/portfolio-tracker.git
+git push -u origin cursor/portfolio-tracker-phase0-2937
+# o a main:
+git checkout -B main
 git push -u origin main
 ```
 
-## Deploy (Vercel + Turso)
+## Deploy checklist (Vercel + Turso)
 
-1. Creá DB en Turso y copiá `DATABASE_URL` + `DATABASE_AUTH_TOKEN`
-2. `npm run db:push` apuntando a Turso
-3. `npm run db:seed`
-4. Deploy en Vercel con las env vars de `.env.example`
+1. Crear DB en [Turso](https://turso.tech) y copiar `DATABASE_URL` + `DATABASE_AUTH_TOKEN`
+2. `DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… npm run db:push`
+3. `DATABASE_URL=… DATABASE_AUTH_TOKEN=… npm run db:seed`
+4. Importar proyecto en Vercel (framework detectado vía `vercel.json`)
+5. Env vars en Vercel: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `AUTH_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `NEXT_PUBLIC_APP_NAME`
+6. Deploy
 
 ## Roadmap siguiente
 
-- Fase 2: FX API, import CSV Binance, precios auto, cron snapshots
-- Fase 3: Compliance España 720/721, FIRE, IBKR
+- Fase 2: FX API, import CSV Binance/IBKR, precios auto, cron snapshots, TOTP
+- Fase 3: Compliance España 720/721, FIRE
 - Fase 4: Notificaciones, backup, PWA
