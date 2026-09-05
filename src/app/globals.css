@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f3f6f4;
+  --surface: #ffffff;
+  --surface-2: #e8efeb;
+  --surface-3: #d5e0db;
+  --ink: #14201c;
+  --ink-soft: #3a4a44;
+  --muted: #6b7c74;
+  --border: #c9d6d0;
+  --accent: #1f7a6b;
+  --accent-hover: #186257;
+  --accent-fg: #f4fffb;
+  --danger: #c44536;
+  --positive: #1f7a6b;
+  --negative: #c44536;
+  --warn: #c47f17;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.45s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
