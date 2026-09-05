@@ -10,11 +10,11 @@ import {
 import type { ClassBreakdown } from "@/lib/services/portfolio";
 
 const COLORS: Record<string, string> = {
-  crypto: "#2A9D8F",
-  stock: "#264653",
-  stable: "#E9C46A",
-  land: "#E76F51",
-  cash: "#8AB6A9",
+  crypto: "#007AFF",
+  stock: "#5856D6",
+  stable: "#34C759",
+  land: "#FF9500",
+  cash: "#8E8E93",
 };
 
 const LABELS: Record<string, string> = {

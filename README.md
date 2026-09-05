@@ -37,7 +37,7 @@ Abrí http://localhost:3000 — login con `AUTH_USERNAME` / `AUTH_PASSWORD` de `
 | `npm run db:push` | Aplica schema a SQLite/Turso |
 | `npm run db:seed` | Seed Berchatti + assets base + FX |
 | `npm run db:studio` | Drizzle Studio |
-| `npx tsx scripts/import-sheet-csv.ts <csv>` | Stub import CSV (parsers en Fase 2) |
+| `npx tsx scripts/import-sheet-csv.ts <csv>` | Stub import CSV (parsers Binance/IBKR en Fase 2) |
 
 ## Estructura
 

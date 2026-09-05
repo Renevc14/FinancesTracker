@@ -1,16 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Fraunces, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-
-const outfit = Outfit({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
 
 const jetbrains = JetBrains_Mono({
   variable: "--font-mono",
@@ -20,12 +10,19 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Patrimonio",
   description: "Tracker patrimonial multi-moneda — cripto, acciones y terrenos",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Patrimonio",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1f7a6b",
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f2f2f7",
 };
 
 export default function RootLayout({
@@ -34,10 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${outfit.variable} ${fraunces.variable} ${jetbrains.variable} h-full antialiased`}
-    >
+    <html lang="es" className={`${jetbrains.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

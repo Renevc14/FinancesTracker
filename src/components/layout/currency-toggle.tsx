@@ -11,7 +11,11 @@ export function CurrencyToggle({ current }: { current: DisplayCurrency }) {
   const [pending, start] = useTransition();
 
   return (
-    <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] p-0.5 text-xs">
+    <div
+      className="inline-flex rounded-full bg-[var(--surface-3)] p-0.5"
+      role="group"
+      aria-label="Moneda de visualización"
+    >
       {options.map((c) => (
         <button
           key={c}
@@ -23,10 +27,10 @@ export function CurrencyToggle({ current }: { current: DisplayCurrency }) {
             })
           }
           className={cn(
-            "rounded-md px-2.5 py-1.5 font-medium transition-colors",
+            "ios-hit min-h-7 min-w-[40px] rounded-full px-2.5 text-[13px] font-semibold transition-all",
             current === c
-              ? "bg-[var(--ink)] text-[var(--bg)]"
-              : "text-[var(--muted)] hover:text-[var(--ink)]",
+              ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm"
+              : "text-[var(--muted)]",
           )}
         >
           {c}

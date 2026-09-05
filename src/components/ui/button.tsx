@@ -3,24 +3,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-50",
+  "ios-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap text-[17px] font-semibold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
         default:
-          "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]",
+          "bg-[var(--accent)] text-[var(--accent-fg)] active:opacity-80",
         secondary:
-          "bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--surface-3)]",
+          "bg-[var(--surface-3)] text-[var(--accent)] active:opacity-80",
         outline:
-          "border border-[var(--border)] bg-transparent hover:bg-[var(--surface-2)]",
-        ghost: "hover:bg-[var(--surface-2)]",
-        danger: "bg-[var(--danger)] text-white hover:opacity-90",
+          "border border-[var(--separator)] bg-[var(--surface)] text-[var(--accent)]",
+        ghost: "text-[var(--accent)] active:opacity-50",
+        danger: "bg-[var(--danger)] text-white active:opacity-80",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-12 rounded-xl px-6 text-base",
-        icon: "h-10 w-10",
+        default: "h-12 rounded-[var(--radius)] px-5",
+        sm: "h-9 rounded-[var(--radius-sm)] px-3 text-[15px]",
+        lg: "h-14 rounded-[var(--radius-lg)] px-6 text-[17px]",
+        icon: "h-11 w-11 rounded-full",
       },
     },
     defaultVariants: {

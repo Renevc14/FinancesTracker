@@ -14,137 +14,135 @@ export default async function DashboardPage() {
   const fx = dash.fxToDisplay;
   const cur = dash.displayCurrency;
   const money = (usd: number) => formatMoney(convertFromUsd(usd, fx), cur);
+  const pnlPositive = dash.pnlUsd >= 0;
 
   return (
-    <div className="space-y-8">
-      <section className="animate-rise space-y-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Total patrimonio
-        </p>
-        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
+    <div className="space-y-6">
+      <section className="animate-fade-in space-y-1 pt-2">
+        <p className="text-[13px] text-[var(--muted)]">Patrimonio total</p>
+        <h1 className="ios-large-title font-mono tracking-tight">
           {money(dash.totalMarketValueUsd)}
         </h1>
         <p
-          className={`text-sm ${dash.pnlUsd >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
+          className={`text-[15px] font-medium ${pnlPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
         >
-          {dash.pnlUsd >= 0 ? "↑" : "↓"} {money(Math.abs(dash.pnlUsd))} (
-          {formatPct(dash.pnlPct)}) vs invertido
+          {pnlPositive ? "▲" : "▼"} {money(Math.abs(dash.pnlUsd))} (
+          {formatPct(dash.pnlPct)})
         </p>
         {dash.lastUpdated && (
-          <p className="text-xs text-[var(--muted)]">
-            Última actualización: {formatDate(dash.lastUpdated)}
+          <p className="text-[13px] text-[var(--muted-2)]">
+            Actualizado {formatDate(dash.lastUpdated)}
           </p>
         )}
       </section>
 
-      <section
-        className="grid grid-cols-2 gap-3 animate-rise"
-        style={{ animationDelay: "80ms" }}
-      >
-        <Kpi label="Invertido" value={money(dash.totalInvestedUsd)} />
-        <Kpi label="Valor actual" value={money(dash.totalMarketValueUsd)} />
-        <Kpi
-          label="G/P"
-          value={money(dash.pnlUsd)}
-          tone={dash.pnlUsd >= 0 ? "pos" : "neg"}
-        />
-        <Kpi label="Rendimiento" value={formatPct(dash.pnlPct)} />
+      <section className="ios-group animate-fade-in">
+        <div className="grid grid-cols-2">
+          <Kpi label="Invertido" value={money(dash.totalInvestedUsd)} />
+          <Kpi label="Valor" value={money(dash.totalMarketValueUsd)} border />
+          <Kpi
+            label="G/P"
+            value={money(dash.pnlUsd)}
+            tone={pnlPositive ? "pos" : "neg"}
+            top
+          />
+          <Kpi
+            label="Rendimiento"
+            value={formatPct(dash.pnlPct)}
+            tone={pnlPositive ? "pos" : "neg"}
+            border
+            top
+          />
+        </div>
       </section>
 
-      <section
-        className="space-y-3 animate-rise"
-        style={{ animationDelay: "140ms" }}
-      >
-        <div className="flex items-end justify-between">
-          <h2 className="font-display text-xl">Terrenos</h2>
+      <section className="animate-fade-in space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="ios-title">Terrenos</h2>
           <Link
             href="/land"
-            className="text-xs text-[var(--accent)] hover:underline"
+            className="text-[15px] font-medium text-[var(--accent)]"
           >
-            ver detalle →
+            Ver
           </Link>
         </div>
-        <p className="text-sm text-[var(--ink-soft)]">
-          Pagado {money(dash.landPaidUsd)} / {money(dash.landCommittedUsd)}
-        </p>
-        <Progress
-          value={
-            dash.landCommittedUsd > 0
-              ? (dash.landPaidUsd / dash.landCommittedUsd) * 100
-              : 0
-          }
-        />
-        {dash.nextLandPayment && (
-          <p className="text-sm text-[var(--warn)]">
-            Próximo pago: {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
-            {formatMoney(
-              dash.nextLandPayment.amountLocal,
-              dash.nextLandPayment.currency,
-            )}{" "}
-            ({dash.nextLandPayment.landTicker})
+        <div className="ios-group space-y-3 p-4">
+          <p className="text-[15px] text-[var(--ink-soft)]">
+            Pagado {money(dash.landPaidUsd)} de {money(dash.landCommittedUsd)}
           </p>
-        )}
+          <Progress
+            value={
+              dash.landCommittedUsd > 0
+                ? (dash.landPaidUsd / dash.landCommittedUsd) * 100
+                : 0
+            }
+          />
+          {dash.nextLandPayment && (
+            <p className="text-[13px] text-[var(--warn)]">
+              Próximo: {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
+              {formatMoney(
+                dash.nextLandPayment.amountLocal,
+                dash.nextLandPayment.currency,
+              )}{" "}
+              ({dash.nextLandPayment.landTicker})
+            </p>
+          )}
+        </div>
       </section>
 
-      <section
-        className="space-y-3 animate-rise"
-        style={{ animationDelay: "200ms" }}
-      >
-        <h2 className="font-display text-xl">Distribución</h2>
-        <AllocationChart data={dash.byClass} />
+      <section className="animate-fade-in space-y-2">
+        <h2 className="ios-title px-1">Distribución</h2>
+        <div className="ios-group p-4">
+          <AllocationChart data={dash.byClass} />
+        </div>
       </section>
 
-      <section
-        className="space-y-3 animate-rise"
-        style={{ animationDelay: "260ms" }}
-      >
-        <div className="flex items-end justify-between">
-          <h2 className="font-display text-xl">Últimas transacciones</h2>
+      <section className="animate-fade-in space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="ios-title">Actividad</h2>
           <Link
             href="/transactions"
-            className="text-xs text-[var(--accent)] hover:underline"
+            className="text-[15px] font-medium text-[var(--accent)]"
           >
-            ver todas →
+            Ver todo
           </Link>
         </div>
-        <ul className="divide-y divide-[var(--border)]">
+        <ul className="ios-group">
           {dash.recentTransactions.length === 0 && (
-            <li className="py-4 text-sm text-[var(--muted)]">
-              Sin transacciones todavía
+            <li className="px-4 py-6 text-center text-[15px] text-[var(--muted)]">
+              Sin movimientos todavía
             </li>
           )}
           {dash.recentTransactions.map((tx) => (
-            <li
-              key={tx.id}
-              className="flex items-center justify-between py-3 text-sm"
-            >
-              <div>
-                <p className="font-medium">
+            <li key={tx.id} className="ios-row">
+              <div className="min-w-0">
+                <p className="ios-headline truncate">
                   {tx.ticker}{" "}
-                  <span className="text-[var(--muted)]">· {tx.type}</span>
+                  <span className="font-normal text-[var(--muted)]">
+                    {tx.type}
+                  </span>
                 </p>
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-[13px] text-[var(--muted)]">
                   {formatDate(tx.date)}
                 </p>
               </div>
-              <p className="font-mono">{money(tx.totalUsd)}</p>
+              <p className="shrink-0 font-mono text-[15px] font-semibold">
+                {money(tx.totalUsd)}
+              </p>
             </li>
           ))}
         </ul>
       </section>
 
       {dash.holdings.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-xl">Holdings</h2>
-          <ul className="space-y-2">
+        <section className="animate-fade-in space-y-2">
+          <h2 className="ios-title px-1">Holdings</h2>
+          <ul className="ios-group">
             {dash.holdings.map((h) => (
-              <li
-                key={h.assetId}
-                className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3"
-              >
-                <div>
-                  <p className="font-medium">{h.ticker}</p>
-                  <p className="text-xs text-[var(--muted)]">
+              <li key={h.assetId} className="ios-row">
+                <div className="min-w-0">
+                  <p className="ios-headline">{h.ticker}</p>
+                  <p className="text-[13px] text-[var(--muted)]">
                     {h.quantity.toLocaleString(undefined, {
                       maximumFractionDigits: 8,
                     })}{" "}
@@ -152,9 +150,11 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono text-sm">{money(h.marketValueUsd)}</p>
+                  <p className="font-mono text-[15px] font-semibold">
+                    {money(h.marketValueUsd)}
+                  </p>
                   <p
-                    className={`text-xs ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
+                    className={`text-[13px] ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
                   >
                     {formatPct(h.pnlPct)}
                   </p>
@@ -172,18 +172,22 @@ function Kpi({
   label,
   value,
   tone,
+  border,
+  top,
 }: {
   label: string;
   value: string;
   tone?: "pos" | "neg";
+  border?: boolean;
+  top?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-[var(--muted)]">
-        {label}
-      </p>
+    <div
+      className={`px-4 py-3 ${border ? "border-l border-[var(--separator)]" : ""} ${top ? "border-t border-[var(--separator)]" : ""}`}
+    >
+      <p className="text-[13px] text-[var(--muted)]">{label}</p>
       <p
-        className={`mt-1 font-mono text-base font-semibold ${
+        className={`mt-0.5 font-mono text-[17px] font-semibold ${
           tone === "pos"
             ? "text-[var(--positive)]"
             : tone === "neg"

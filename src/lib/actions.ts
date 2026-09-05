@@ -28,49 +28,92 @@ export type ActionResult<T = void> =
 export async function createTransactionAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  const parsed = transactionFormSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  try {
+    const parsed = transactionFormSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Datos inválidos",
+      };
+    }
+    const v = parsed.data;
+
+    if (v.date > new Date().toISOString().slice(0, 10)) {
+      return { ok: false, error: "La fecha no puede ser futura" };
+    }
+    if (v.fxRate <= 0 || !Number.isFinite(v.fxRate)) {
+      return { ok: false, error: "FX inválido" };
+    }
+    if (v.quantity <= 0 || v.unitPrice < 0) {
+      return { ok: false, error: "Cantidad/precio inválidos" };
+    }
+
+    const asset = await db.query.assets.findFirst({
+      where: and(eq(assets.id, v.assetId), isNull(assets.deletedAt)),
+    });
+    if (!asset) {
+      return { ok: false, error: "Activo no encontrado" };
+    }
+    if (asset.class === "land") {
+      return {
+        ok: false,
+        error: "Usa el módulo de terrenos para pagos de land",
+      };
+    }
+
+    const totalUsd =
+      v.priceCurrency === "USD"
+        ? v.quantity * v.unitPrice
+        : (v.quantity * v.unitPrice) / v.fxRate;
+    if (!Number.isFinite(totalUsd)) {
+      return { ok: false, error: "Total USD no calculable" };
+    }
+
+    const [row] = await db
+      .insert(transactions)
+      .values({
+        date: v.date,
+        assetId: v.assetId,
+        type: v.type,
+        quantity: v.quantity,
+        unitPrice: v.unitPrice,
+        priceCurrency: v.priceCurrency,
+        fxRate: v.fxRate,
+        totalUsd,
+        platform: v.platform,
+        notes: v.notes || null,
+        importedFrom: "manual",
+        importRef: crypto.randomUUID(),
+      })
+      .returning();
+
+    revalidatePath("/dashboard");
+    revalidatePath("/transactions");
+    return { ok: true, data: { id: row.id } };
+  } catch (err) {
+    console.error("[createTransactionAction]", err);
+    return { ok: false, error: "No se pudo guardar la transacción" };
   }
-  const v = parsed.data;
-  const totalUsd =
-    v.priceCurrency === "USD"
-      ? v.quantity * v.unitPrice
-      : (v.quantity * v.unitPrice) / v.fxRate;
-
-  const [row] = await db
-    .insert(transactions)
-    .values({
-      date: v.date,
-      assetId: v.assetId,
-      type: v.type,
-      quantity: v.quantity,
-      unitPrice: v.unitPrice,
-      priceCurrency: v.priceCurrency,
-      fxRate: v.fxRate,
-      totalUsd,
-      platform: v.platform,
-      notes: v.notes || null,
-      importedFrom: "manual",
-      importRef: crypto.randomUUID(),
-    })
-    .returning();
-
-  revalidatePath("/dashboard");
-  revalidatePath("/transactions");
-  return { ok: true, data: { id: row.id } };
 }
 
 export async function deleteTransactionAction(
   id: string,
 ): Promise<ActionResult> {
-  await db
-    .update(transactions)
-    .set({ deletedAt: new Date().toISOString() })
-    .where(eq(transactions.id, id));
-  revalidatePath("/dashboard");
-  revalidatePath("/transactions");
-  return { ok: true, data: undefined };
+  if (!id || typeof id !== "string") {
+    return { ok: false, error: "ID inválido" };
+  }
+  try {
+    await db
+      .update(transactions)
+      .set({ deletedAt: new Date().toISOString() })
+      .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
+    revalidatePath("/dashboard");
+    revalidatePath("/transactions");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    console.error("[deleteTransactionAction]", err);
+    return { ok: false, error: "No se pudo eliminar" };
+  }
 }
 
 export async function createLandPaymentAction(
