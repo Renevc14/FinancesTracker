@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AssetLogo } from "@/components/ui/asset-logo";
 import { Progress } from "@/components/ui/progress";
 import { landStatusLabel } from "@/lib/labels";
 import { listLandLots } from "@/lib/services/land";
@@ -21,7 +22,7 @@ export default async function LandPage() {
         {lots[0] && (
           <Link
             href={`/pagos/nuevo?lote=${lots[0].asset.id}`}
-            className="ios-pressable inline-flex h-9 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-white"
+            className="ios-pressable inline-flex h-8 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-[var(--accent-fg)]"
           >
             Pago
           </Link>
@@ -39,13 +40,20 @@ export default async function LandPage() {
             <Link href={`/land/${lot.asset.id}`} className="ios-pressable block">
               <div className="ios-group space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="ios-headline">{lot.asset.ticker}</p>
-                    <p className="text-[13px] text-[var(--muted)]">
-                      {lot.contract.surfaceM2} m² · {lot.contract.location}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <AssetLogo
+                      ticker={lot.asset.ticker}
+                      assetClass="land"
+                      size={40}
+                    />
+                    <div>
+                      <p className="ios-headline">{lot.asset.ticker}</p>
+                      <p className="text-[13px] text-[var(--muted)]">
+                        {lot.contract.surfaceM2} m² · {lot.contract.location}
+                      </p>
+                    </div>
                   </div>
-                  <span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-soft)]">
+                  <span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[12px] font-semibold text-[var(--ink-soft)]">
                     {landStatusLabel(lot.contract.status)}
                   </span>
                 </div>

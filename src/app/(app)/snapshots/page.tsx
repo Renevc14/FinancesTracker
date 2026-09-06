@@ -46,7 +46,7 @@ export default async function SnapshotsPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="money text-[15px] font-semibold">
+                  <p className="money text-[17px] font-semibold">
                     {formatMoney(s.totalMarketValueUsd, "USD")}
                   </p>
                   {prev && (

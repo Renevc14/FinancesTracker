@@ -103,15 +103,6 @@ const EXCEL_TXS: Array<{
   },
   {
     date: "2026-05-09",
-    ticker: "USDC",
-    quantity: 600,
-    unitPrice: 1,
-    totalUsd: 600,
-    notes: "Reserva / fondo de aterrizaje",
-    platform: "manual",
-  },
-  {
-    date: "2026-05-09",
     ticker: "BTC",
     quantity: 0.0099,
     unitPrice: 80735,

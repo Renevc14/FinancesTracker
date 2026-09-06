@@ -44,7 +44,7 @@ export function formatPct(value: number): string {
 
 export function formatQuantity(value: number): string {
   const abs = Math.abs(value);
-  const digits = abs >= 1 ? 4 : abs >= 0.01 ? 6 : 8;
+  const digits = abs >= 1 ? 4 : 8;
   return value.toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: digits,
@@ -65,4 +65,13 @@ export function formatDate(date: string | Date): string {
     month: "short",
     year: "numeric",
   });
+}
+
+export function formatMonthYear(date: string): string {
+  const d = new Date(date + "T12:00:00");
+  const label = d.toLocaleDateString("es-BO", {
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }

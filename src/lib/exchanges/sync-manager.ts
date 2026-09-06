@@ -1,19 +1,31 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   apiCredentials,
   assets,
+  cryptoLoans,
   reconciliationLogs,
   syncJobs,
   syncLogs,
   transactions,
+  walletSnapshots,
 } from "@/lib/db/schema";
 import { decryptSecret } from "@/lib/crypto/encryption";
 import { getPortfolioDashboard } from "@/lib/services/portfolio";
-import { BinanceClient } from "./binance";
+import {
+  BinanceClient,
+  PORTFOLIO_START_DATE,
+  binanceSpotSymbolsFor,
+} from "./binance";
 import { IbkrFlexClient } from "./ibkr";
 import { KrakenClient } from "./kraken";
-import type { ExchangeClient, Trade } from "./types";
+import type {
+  ExchangeClient,
+  LoanPosition,
+  RewardEvent,
+  Trade,
+  WalletBreakdown,
+} from "./types";
 
 const locks = new Set<string>();
 
@@ -101,21 +113,91 @@ export async function runSync(
     }
 
     const balances = await client.getBalances();
+
+    let recordsNew = 0;
+    let recordsDuplicate = 0;
+    let recordsFetched = balances.length;
+    if (client.getTrades) {
+      const cryptoTickers = (
+        await db
+          .select({ ticker: assets.ticker })
+          .from(assets)
+          .where(and(eq(assets.class, "crypto"), isNull(assets.deletedAt)))
+      ).map((a) => a.ticker);
+      const symbols =
+        cred.provider === "binance"
+          ? binanceSpotSymbolsFor(cryptoTickers)
+          : cryptoTickers.map((t) => `${t}USDT`);
+      const trades = await client.getTrades(symbols);
+      recordsFetched = trades.length + balances.length;
+      const imported = await importTrades(cred.provider, trades);
+      recordsNew = imported.newCount;
+      recordsDuplicate = imported.dupCount;
+      let superseded = 0;
+      let archivedOld = 0;
+      if (cred.provider === "binance") {
+        superseded = await supersedeNonApiSpotLedger(imported.touchedAssetIds);
+        archivedOld = await archiveBinanceApiTradesBefore(PORTFOLIO_START_DATE);
+      }
+      const emptyNote =
+        cred.provider === "binance" && trades.length === 0
+          ? " Sin fills Spot desde el inicio del portafolio: se mantienen las compras locales."
+          : "";
+      await db.insert(syncLogs).values({
+        syncJobId: job.id,
+        level: trades.length === 0 && cred.provider === "binance" ? "warn" : "info",
+        message: `Trades desde ${PORTFOLIO_START_DATE}: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas, ${superseded} locales sustituidas, ${archivedOld} fills anteriores archivados. Pares: ${symbols.join(", ")}.${emptyNote}`,
+      });
+    }
+
+    let custodyWallets: WalletBreakdown[] = balances.map((b) => ({
+      asset: b.asset.toUpperCase(),
+      spot: Number(b.total),
+      earn: 0,
+      funding: 0,
+      collateral: 0,
+      total: Number(b.total),
+    }));
+
+    if (cred.provider === "binance") {
+      const custody = await (client as BinanceClient).getCustodySnapshot(balances);
+      custodyWallets = custody.wallets;
+      recordsFetched += custody.rewards.length + custody.loans.length;
+      const rewardsImported = await importRewards(custody.rewards);
+      recordsNew += rewardsImported.newCount;
+      recordsDuplicate += rewardsImported.dupCount;
+      await persistLoans(custody.loans);
+      await persistWallets(custody.wallets);
+      await db.insert(syncLogs).values({
+        syncJobId: job.id,
+        level: custody.warnings.length > 0 ? "warn" : "info",
+        message: `Custodia: ${custody.wallets.length} activos, ${custody.loans.length} préstamos, Earn ${rewardsImported.newCount} nuevas / ${rewardsImported.dupCount} duplicadas.${custody.warnings.length ? `Avisos: ${custody.warnings.join(" · ")}` : ""}`,
+      });
+    }
+
     const dash = await getPortfolioDashboard();
     const threshold =
       (await db.query.userConfig.findFirst())?.reconciliationDriftThreshold ??
       0.005;
 
     let warnings = 0;
-    for (const b of balances) {
+    const reconAssets = new Set(
+      custodyWallets.map((w) => w.asset).concat(
+        dash.holdings
+          .filter((h) => h.class === "crypto" || h.class === "stable")
+          .map((h) => h.ticker.toUpperCase()),
+      ),
+    );
+    for (const ticker of reconAssets) {
+      const wallet = custodyWallets.find((w) => w.asset === ticker);
       const holding = dash.holdings.find(
-        (h) => h.ticker.toUpperCase() === b.asset.toUpperCase(),
+        (h) => h.ticker.toUpperCase() === ticker,
       );
       const asset = await db.query.assets.findFirst({
-        where: eq(assets.ticker, b.asset),
+        where: and(eq(assets.ticker, ticker), isNull(assets.deletedAt)),
       });
       if (!asset) continue;
-      const apiBal = Number(b.total);
+      const apiBal = wallet?.total ?? 0;
       const dbBal = holding?.quantity ?? 0;
       const driftAbs = Math.abs(apiBal - dbBal);
       const driftPct = apiBal !== 0 ? driftAbs / apiBal : driftAbs > 0 ? 1 : 0;
@@ -133,26 +215,12 @@ export async function runSync(
       });
     }
 
-    let recordsNew = 0;
-    let recordsDuplicate = 0;
-    if (client.getTrades) {
-      const trades = await client.getTrades();
-      const imported = await importTrades(cred.provider, trades);
-      recordsNew = imported.newCount;
-      recordsDuplicate = imported.dupCount;
-      await db.insert(syncLogs).values({
-        syncJobId: job.id,
-        level: "info",
-        message: `Trades: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas`,
-      });
-    }
-
     await db
       .update(syncJobs)
       .set({
         status: warnings > 0 ? "partial" : "success",
         finishedAt: new Date().toISOString(),
-        recordsFetched: balances.length,
+        recordsFetched,
         recordsNew,
         recordsDuplicate,
       })
@@ -190,17 +258,24 @@ async function importTrades(provider: string, trades: Trade[]) {
   let newCount = 0;
   let dupCount = 0;
   const source = `${provider}_api`;
+  const touchedAssetIds = new Set<string>();
   for (const trade of trades) {
     const ticker = baseFromSymbol(trade.symbol);
     const asset = await db.query.assets.findFirst({
-      where: eq(assets.ticker, ticker),
+      where: and(eq(assets.ticker, ticker), isNull(assets.deletedAt)),
     });
-    if (!asset || asset.class === "land") continue;
+    if (!asset || asset.class !== "crypto") continue;
     const qty = Number(trade.quantity);
     const price = Number(trade.price);
     const total = Number(trade.quoteQuantity) || qty * price;
     if (!Number.isFinite(qty) || qty === 0) continue;
     const date = trade.timestamp.toISOString().slice(0, 10);
+    if (
+      provider === "binance" &&
+      date < PORTFOLIO_START_DATE
+    ) {
+      continue;
+    }
     try {
       await db.insert(transactions).values({
         date,
@@ -217,11 +292,163 @@ async function importTrades(provider: string, trades: Trade[]) {
         importRef: trade.externalId,
       });
       newCount += 1;
+      touchedAssetIds.add(asset.id);
+    } catch {
+      dupCount += 1;
+      touchedAssetIds.add(asset.id);
+    }
+  }
+  return { newCount, dupCount, touchedAssetIds };
+}
+
+async function supersedeNonApiSpotLedger(assetIds: Set<string>) {
+  if (assetIds.size === 0) return 0;
+  const now = new Date().toISOString();
+  const rows = await db
+    .update(transactions)
+    .set({ deletedAt: now })
+    .where(
+      and(
+        inArray(transactions.assetId, [...assetIds]),
+        inArray(transactions.type, ["buy", "sell"]),
+        isNull(transactions.deletedAt),
+        or(
+          isNull(transactions.importedFrom),
+          ne(transactions.importedFrom, "binance_api"),
+          sql`${transactions.importRef} not like '%:%'`,
+        ),
+      ),
+    )
+    .returning({ id: transactions.id });
+  return rows.length;
+}
+
+async function archiveBinanceApiTradesBefore(startDate: string) {
+  const now = new Date().toISOString();
+  const rows = await db
+    .update(transactions)
+    .set({ deletedAt: now })
+    .where(
+      and(
+        eq(transactions.importedFrom, "binance_api"),
+        inArray(transactions.type, ["buy", "sell"]),
+        isNull(transactions.deletedAt),
+        lt(transactions.date, startDate),
+      ),
+    )
+    .returning({ id: transactions.id });
+  return rows.length;
+}
+
+async function importRewards(rewards: RewardEvent[]) {
+  let newCount = 0;
+  let dupCount = 0;
+  for (const reward of rewards) {
+    const asset = await db.query.assets.findFirst({
+      where: and(eq(assets.ticker, reward.asset), isNull(assets.deletedAt)),
+    });
+    if (!asset) continue;
+    const qty = Number(reward.amount);
+    if (!Number.isFinite(qty) || qty === 0) continue;
+    const date = reward.timestamp.toISOString().slice(0, 10);
+    if (date < PORTFOLIO_START_DATE) continue;
+    try {
+      await db.insert(transactions).values({
+        date,
+        assetId: asset.id,
+        type: "reward",
+        quantity: qty,
+        unitPrice: 0,
+        priceCurrency: "USD",
+        fxRate: 1,
+        totalUsd: 0,
+        platform: "binance",
+        notes: `Earn ${reward.source}`,
+        importedFrom: "binance_earn",
+        importRef: reward.externalId,
+      });
+      newCount += 1;
     } catch {
       dupCount += 1;
     }
   }
   return { newCount, dupCount };
+}
+
+async function persistLoans(loans: LoanPosition[]) {
+  const now = new Date().toISOString();
+  const seen = new Set<string>();
+  for (const loan of loans) {
+    seen.add(loan.externalRef);
+    const [existing] = await db
+      .select()
+      .from(cryptoLoans)
+      .where(
+        and(
+          eq(cryptoLoans.provider, "binance"),
+          eq(cryptoLoans.externalRef, loan.externalRef),
+        ),
+      )
+      .limit(1);
+    const values = {
+      product: loan.product,
+      loanCoin: loan.loanCoin,
+      totalDebt: loan.totalDebt,
+      collateralCoin: loan.collateralCoin,
+      collateralAmount: loan.collateralAmount,
+      currentLtv: loan.currentLtv,
+      status: "ongoing" as const,
+      deletedAt: null,
+      updatedAt: now,
+    };
+    if (existing) {
+      await db
+        .update(cryptoLoans)
+        .set(values)
+        .where(eq(cryptoLoans.id, existing.id));
+    } else {
+      await db.insert(cryptoLoans).values({
+        provider: "binance",
+        externalRef: loan.externalRef,
+        ...values,
+      });
+    }
+  }
+  const open = await db
+    .select()
+    .from(cryptoLoans)
+    .where(
+      and(
+        eq(cryptoLoans.provider, "binance"),
+        eq(cryptoLoans.status, "ongoing"),
+        isNull(cryptoLoans.deletedAt),
+      ),
+    );
+  for (const row of open) {
+    if (seen.has(row.externalRef)) continue;
+    await db
+      .update(cryptoLoans)
+      .set({ status: "repaid", deletedAt: now, updatedAt: now })
+      .where(eq(cryptoLoans.id, row.id));
+  }
+}
+
+async function persistWallets(wallets: WalletBreakdown[]) {
+  const now = new Date().toISOString();
+  await db.delete(walletSnapshots).where(eq(walletSnapshots.provider, "binance"));
+  if (wallets.length === 0) return;
+  await db.insert(walletSnapshots).values(
+    wallets.map((w) => ({
+      provider: "binance",
+      asset: w.asset,
+      spot: w.spot,
+      earn: w.earn,
+      funding: w.funding,
+      collateral: w.collateral,
+      total: w.total,
+      capturedAt: now,
+    })),
+  );
 }
 
 export async function listSyncJobs(limit = 20) {

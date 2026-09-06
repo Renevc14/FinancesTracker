@@ -21,6 +21,9 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 
 ### Changed
 
+- Binance Spot (`myTrades` USDT/USDC) es la fuente de verdad de compras y ventas de criptos del catálogo; el sync sustituye el libro local de esos activos
+- El libro Spot empieza el 1 feb 2026; fills anteriores de Binance se ignoran y se archivan
+- Binance Earn, Funding y préstamos: el patrimonio descuenta la deuda; la reconcilación mira Spot+Earn+colateral
 - Patrimonio total incluye lo pagado en lotes al costo (el saldo pendiente sigue en comprometido)
 - UI más fina: tipografía tabular, toggle de moneda, cards y distribución sin recorte
 - Formulario de nueva transacción alineado al resto de la app (card, tipos en español)

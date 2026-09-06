@@ -11,7 +11,7 @@ export function Progress({
   return (
     <div
       className={cn(
-        "h-3 w-full overflow-hidden rounded-full bg-[var(--surface-3)]",
+        "h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-3)]",
         className,
       )}
     >

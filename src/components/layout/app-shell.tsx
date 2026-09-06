@@ -36,17 +36,19 @@ export function AppShell({
     <div className="min-h-dvh bg-[var(--bg)] text-[var(--ink)]">
       <header className="ios-blur sticky top-0 z-40 border-b border-[var(--separator)]">
         <div
-          className="mx-auto flex h-12 max-w-lg items-center justify-between gap-3 px-5"
+          className="mx-auto max-w-lg px-5"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <p className="ios-headline leading-none">{title}</p>
-          <CurrencyToggle current={displayCurrency} />
+          <div className="flex h-11 items-center justify-between gap-3">
+            <p className="ios-headline leading-none">{title}</p>
+            <CurrencyToggle current={displayCurrency} />
+          </div>
         </div>
       </header>
 
       <div
-        className="mx-auto max-w-lg px-5 pt-5 md:pb-12"
-        style={{ paddingBottom: "calc(var(--tabbar-h) + 24px)" }}
+        className="mx-auto max-w-lg px-5 pt-3 md:pb-12"
+        style={{ paddingBottom: "calc(var(--tabbar-h) + 28px)" }}
       >
         <aside className="mb-6 hidden md:block">
           <nav className="flex rounded-full bg-[var(--surface-3)] p-1">
@@ -57,7 +59,7 @@ export function AppShell({
                   key={l.href}
                   href={l.href}
                   className={cn(
-                    "ios-pressable flex-1 rounded-full px-2 py-1.5 text-center text-[12px] font-semibold tracking-tight",
+                    "ios-pressable flex-1 rounded-full px-2 py-2 text-center text-[13px] font-semibold tracking-tight",
                     active
                       ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_0.5px_1px_rgba(0,0,0,0.12)]"
                       : "text-[var(--muted)]",
@@ -69,7 +71,7 @@ export function AppShell({
             })}
           </nav>
         </aside>
-        <main className="min-w-0 animate-fade-in">{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
 
       <nav
@@ -85,11 +87,11 @@ export function AppShell({
                 <Link
                   href={l.href}
                   className={cn(
-                    "ios-pressable flex flex-col items-center gap-0.5 px-1 pb-1.5 pt-2 text-[10px] font-medium",
+                    "ios-pressable flex min-h-[49px] flex-col items-center justify-center gap-0.5 px-1 pt-1.5 text-[10px] font-medium",
                     active ? "text-[var(--accent)]" : "text-[var(--muted)]",
                   )}
                 >
-                  <Icon size={22} strokeWidth={active ? 2.25 : 1.75} />
+                  <Icon size={24} strokeWidth={active ? 2.25 : 1.7} />
                   <span className="truncate">{l.label}</span>
                 </Link>
               </li>

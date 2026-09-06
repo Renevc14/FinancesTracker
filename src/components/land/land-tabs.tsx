@@ -35,7 +35,7 @@ export function LandTabs({
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex-1 rounded-full px-2 py-1.5 text-[13px] font-semibold tracking-tight",
+              "ios-pressable min-h-8 flex-1 rounded-full px-1.5 text-[13px] font-semibold tracking-tight",
               tab === t.id
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_0.5px_1px_rgba(0,0,0,0.12)]"
                 : "text-[var(--muted)]",

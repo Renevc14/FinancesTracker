@@ -12,7 +12,8 @@ export function RefreshMarketsButton() {
     <Button
       type="button"
       size="sm"
-      variant="secondary"
+      variant="ghost"
+      className="-ml-2 h-8 px-2 text-[15px] font-medium"
       disabled={pending}
       onClick={() =>
         start(async () => {

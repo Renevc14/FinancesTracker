@@ -1,44 +1,70 @@
 import { db } from "@/lib/db";
-import { assets, reconciliationLogs } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { assets, reconciliationLogs, syncJobs } from "@/lib/db/schema";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { IgnoreDriftButton } from "@/components/forms/ignore-drift-button";
-import { formatPct } from "@/lib/utils";
+import { formatPct, formatQuantity } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_LABEL: Record<string, string> = {
+  warning: "aviso",
+  critical: "crítico",
+};
+
 export default async function ReconciliationPage() {
-  const rows = await db
-    .select({
-      log: reconciliationLogs,
-      ticker: assets.ticker,
-    })
-    .from(reconciliationLogs)
-    .innerJoin(assets, eq(assets.id, reconciliationLogs.assetId))
-    .where(eq(reconciliationLogs.resolved, false))
-    .orderBy(desc(reconciliationLogs.createdAt));
+  const [latest] = await db
+    .select({ id: syncJobs.id })
+    .from(syncJobs)
+    .orderBy(desc(syncJobs.startedAt))
+    .limit(1);
+
+  const rows = latest
+    ? await db
+        .select({
+          log: reconciliationLogs,
+          ticker: assets.ticker,
+        })
+        .from(reconciliationLogs)
+        .innerJoin(assets, eq(assets.id, reconciliationLogs.assetId))
+        .where(
+          and(
+            eq(reconciliationLogs.syncJobId, latest.id),
+            eq(reconciliationLogs.resolved, false),
+            ne(reconciliationLogs.status, "ok"),
+          ),
+        )
+        .orderBy(desc(reconciliationLogs.createdAt))
+    : [];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="ios-large-title">Reconciliación</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Drift API vs lo calculado en el tracker
+          Último sync: API (Spot + Earn + Funding + colateral) vs el libro
         </p>
       </div>
-      <ul className="space-y-3">
+      <ul className="ios-group">
         {rows.length === 0 && (
-          <li className="ios-group px-4 py-6 text-[15px] text-[var(--muted)]">
-            Sin drifts abiertos
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
+            Sin drifts abiertos en el último sync
           </li>
         )}
         {rows.map(({ log, ticker }) => (
-          <li key={log.id} className="ios-group space-y-2 p-4">
-            <p className="ios-headline">{ticker}</p>
+          <li
+            key={log.id}
+            className="space-y-3 p-4 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--separator)]"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="ios-headline">{ticker}</p>
+              <p className="text-[13px] font-semibold text-[var(--warn)]">
+                {formatPct(log.driftPct * 100)} ·{" "}
+                {STATUS_LABEL[log.status] ?? log.status}
+              </p>
+            </div>
             <p className="text-[15px] text-[var(--ink-soft)]">
-              API {log.apiBalance} · DB {log.dbBalance}
-            </p>
-            <p className="text-[13px] text-[var(--warn)]">
-              Drift {formatPct(log.driftPct * 100)} · {log.status}
+              API {formatQuantity(log.apiBalance)} · Libro{" "}
+              {formatQuantity(log.dbBalance)}
             </p>
             <IgnoreDriftButton logId={log.id} />
           </li>

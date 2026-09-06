@@ -25,6 +25,32 @@ export type RewardEvent = {
   source: "auto_invest" | "simple_earn" | "staking" | "airdrop" | "other";
 };
 
+export type LoanPosition = {
+  externalRef: string;
+  product: "flexible" | "stable";
+  loanCoin: string;
+  totalDebt: number;
+  collateralCoin: string;
+  collateralAmount: number;
+  currentLtv: number | null;
+};
+
+export type WalletBreakdown = {
+  asset: string;
+  spot: number;
+  earn: number;
+  funding: number;
+  collateral: number;
+  total: number;
+};
+
+export type CustodySnapshot = {
+  wallets: WalletBreakdown[];
+  loans: LoanPosition[];
+  rewards: RewardEvent[];
+  warnings: string[];
+};
+
 export type ConnectionTest = {
   ok: boolean;
   scopes: string[];

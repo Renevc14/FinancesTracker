@@ -451,6 +451,50 @@ export const bankBalanceSnapshots = sqliteTable("bank_balance_snapshots", {
     .default(sql`(datetime('now'))`),
 });
 
+export const cryptoLoans = sqliteTable(
+  "crypto_loans",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    provider: text("provider").notNull().default("binance"),
+    externalRef: text("external_ref").notNull(),
+    product: text("product").$type<"flexible" | "stable">().notNull(),
+    loanCoin: text("loan_coin").notNull(),
+    totalDebt: real("total_debt").notNull(),
+    collateralCoin: text("collateral_coin").notNull(),
+    collateralAmount: real("collateral_amount").notNull(),
+    currentLtv: real("current_ltv"),
+    status: text("status")
+      .$type<"ongoing" | "repaid">()
+      .notNull()
+      .default("ongoing"),
+    deletedAt: text("deleted_at"),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("crypto_loans_provider_ref_uidx").on(t.provider, t.externalRef)],
+);
+
+export const walletSnapshots = sqliteTable(
+  "wallet_snapshots",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    provider: text("provider").notNull().default("binance"),
+    asset: text("asset").notNull(),
+    spot: real("spot").notNull().default(0),
+    earn: real("earn").notNull().default(0),
+    funding: real("funding").notNull().default(0),
+    collateral: real("collateral").notNull().default(0),
+    total: real("total").notNull(),
+    capturedAt: text("captured_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [uniqueIndex("wallet_snapshots_provider_asset_uidx").on(t.provider, t.asset)],
+);
+
 export type Asset = typeof assets.$inferSelect;
 export type NewAsset = typeof assets.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
@@ -467,3 +511,5 @@ export type ApiCredential = typeof apiCredentials.$inferSelect;
 export type SyncJob = typeof syncJobs.$inferSelect;
 export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type BankAccount = typeof bankAccounts.$inferSelect;
+export type CryptoLoan = typeof cryptoLoans.$inferSelect;
+export type WalletSnapshot = typeof walletSnapshots.$inferSelect;

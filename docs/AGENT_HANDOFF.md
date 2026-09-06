@@ -49,7 +49,9 @@ Smoke:
 - Manual monthly snapshots + cron diario
 - Settings: assets, FX, API credentials, banks, backup JSON
 - Sync / reconciliation (aceptar API) / FIRE editable / Modelo 720
-- Binance Spot CSV + API trades, Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
+- Binance Spot API (`myTrades` USDT/USDC) es la fuente de verdad de compras/ventas de criptos del catálogo (BTC/ETH/SOL) **desde 2026-02-01**; CSV es fallback
+- Binance Earn (flexible/locked), Funding y préstamos (colateral + deuda neta en el patrimonio)
+- Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
 - PWA manifest
 - Docker Compose local run
 
@@ -58,7 +60,7 @@ Smoke:
 Priority backlog:
 
 1. Vercel + Turso production deploy
-2. Historial Binance Earn / depósitos-retiros completo
+2. Historial Binance depósitos-retiros (transferencias on-chain) completo
 3. Push notifications nativas (hoy hay aviso in-app de cuota)
 
 ## Conventions

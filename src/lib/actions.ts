@@ -307,6 +307,7 @@ export async function runManualSyncAction(
     revalidatePath("/sync");
     revalidatePath("/reconciliation");
     revalidatePath("/dashboard");
+    revalidatePath("/transactions");
     return { ok: true, data: { id } };
   } catch (err) {
     return {
