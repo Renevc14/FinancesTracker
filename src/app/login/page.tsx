@@ -41,6 +41,16 @@ function LoginForm() {
           placeholder="••••••••"
         />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="totp">Código 2FA</Label>
+        <Input
+          id="totp"
+          name="totp"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="Solo si TOTP está activo"
+        />
+      </div>
       {state.error && (
         <p
           className="rounded-[var(--radius)] bg-[var(--danger)]/10 px-3 py-2 text-[15px] text-[var(--danger)]"

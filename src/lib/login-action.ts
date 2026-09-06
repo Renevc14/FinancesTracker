@@ -13,10 +13,16 @@ export async function loginAction(
 ): Promise<LoginState> {
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const totp = String(formData.get("totp") ?? "").trim();
   const callbackUrl = String(formData.get("callbackUrl") ?? "/dashboard");
 
   if (!username || !password) {
     return { error: "Completa usuario y contraseña" };
+  }
+
+  const { totpIsConfigured, verifyTotp } = await import("@/lib/crypto/totp");
+  if (totpIsConfigured() && !verifyTotp(totp)) {
+    return { error: "Código 2FA incorrecto" };
   }
 
   try {

@@ -3,6 +3,7 @@ import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { fxRates } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";
+import { RefreshMarketsButton } from "@/components/forms/refresh-markets-button";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,11 @@ export default async function FxSettingsPage() {
           Tipos de cambio
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          FX histórico (paralelo BOB = manual)
+          FX histórico (paralelo BOB = manual). USD/EUR se puede refrescar desde el dashboard.
         </p>
       </div>
+
+      <RefreshMarketsButton />
 
       <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/70">
         {rates.length === 0 && (

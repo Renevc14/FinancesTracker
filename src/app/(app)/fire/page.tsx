@@ -1,5 +1,6 @@
 import { getFireProjection } from "@/lib/services/fire";
 import { formatMoney, formatPct } from "@/lib/utils";
+import { FireConfigForm } from "@/components/forms/fire-config-form";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,15 @@ export default async function FirePage() {
           </div>
         )}
       </dl>
+      <section className="ios-group space-y-3 p-4">
+        <h2 className="ios-title">Ajustes de proyección</h2>
+        <FireConfigForm
+          target={fire.targetUsd}
+          monthly={fire.monthlyContribution}
+          expectedReturn={fire.expectedReturn}
+          targetDate={fire.targetDate}
+        />
+      </section>
     </div>
   );
 }

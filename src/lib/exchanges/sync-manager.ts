@@ -1,10 +1,19 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { apiCredentials, assets, reconciliationLogs, syncJobs, syncLogs } from "@/lib/db/schema";
+import {
+  apiCredentials,
+  assets,
+  reconciliationLogs,
+  syncJobs,
+  syncLogs,
+  transactions,
+} from "@/lib/db/schema";
 import { decryptSecret } from "@/lib/crypto/encryption";
 import { getPortfolioDashboard } from "@/lib/services/portfolio";
 import { BinanceClient } from "./binance";
-import type { ExchangeClient } from "./types";
+import { IbkrFlexClient } from "./ibkr";
+import { KrakenClient } from "./kraken";
+import type { ExchangeClient, Trade } from "./types";
 
 const locks = new Set<string>();
 
@@ -12,9 +21,24 @@ function clientFor(
   provider: string,
   apiKey: string,
   apiSecret: string,
+  extra: Record<string, string> | null,
 ): ExchangeClient {
   if (provider === "binance") return new BinanceClient(apiKey, apiSecret);
-  throw new Error(`Provider ${provider} aún no tiene cliente (Kraken en 2027)`);
+  if (provider === "kraken") return new KrakenClient(apiKey, apiSecret);
+  if (provider === "ibkr_flex") {
+    const queryId = extra?.flex_query_id ?? extra?.flexQueryId ?? "";
+    return new IbkrFlexClient(apiKey, queryId || apiSecret);
+  }
+  throw new Error(`Provider ${provider} no soportado`);
+}
+
+function baseFromSymbol(symbol: string): string {
+  for (const quote of ["USDT", "USDC", "BUSD", "FDUSD", "EUR"]) {
+    if (symbol.endsWith(quote) && symbol.length > quote.length) {
+      return symbol.slice(0, -quote.length);
+    }
+  }
+  return symbol;
 }
 
 export async function runSync(
@@ -48,7 +72,8 @@ export async function runSync(
   try {
     const apiKey = decryptSecret(cred.apiKeyCipher);
     const apiSecret = decryptSecret(cred.apiSecretCipher);
-    const client = clientFor(cred.provider, apiKey, apiSecret);
+    const extra = (cred.additionalConfig ?? {}) as Record<string, string>;
+    const client = clientFor(cred.provider, apiKey, apiSecret, extra);
     const test = await client.testConnection();
     await db.insert(syncLogs).values({
       syncJobId: job.id,
@@ -108,12 +133,28 @@ export async function runSync(
       });
     }
 
+    let recordsNew = 0;
+    let recordsDuplicate = 0;
+    if (client.getTrades) {
+      const trades = await client.getTrades();
+      const imported = await importTrades(cred.provider, trades);
+      recordsNew = imported.newCount;
+      recordsDuplicate = imported.dupCount;
+      await db.insert(syncLogs).values({
+        syncJobId: job.id,
+        level: "info",
+        message: `Trades: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas`,
+      });
+    }
+
     await db
       .update(syncJobs)
       .set({
         status: warnings > 0 ? "partial" : "success",
         finishedAt: new Date().toISOString(),
         recordsFetched: balances.length,
+        recordsNew,
+        recordsDuplicate,
       })
       .where(eq(syncJobs.id, job.id));
     await db
@@ -145,6 +186,44 @@ export async function runSync(
   }
 }
 
+async function importTrades(provider: string, trades: Trade[]) {
+  let newCount = 0;
+  let dupCount = 0;
+  const source = `${provider}_api`;
+  for (const trade of trades) {
+    const ticker = baseFromSymbol(trade.symbol);
+    const asset = await db.query.assets.findFirst({
+      where: eq(assets.ticker, ticker),
+    });
+    if (!asset || asset.class === "land") continue;
+    const qty = Number(trade.quantity);
+    const price = Number(trade.price);
+    const total = Number(trade.quoteQuantity) || qty * price;
+    if (!Number.isFinite(qty) || qty === 0) continue;
+    const date = trade.timestamp.toISOString().slice(0, 10);
+    try {
+      await db.insert(transactions).values({
+        date,
+        assetId: asset.id,
+        type: trade.side === "buy" ? "buy" : "sell",
+        quantity: qty,
+        unitPrice: price,
+        priceCurrency: "USD",
+        fxRate: 1,
+        totalUsd: total,
+        platform: provider,
+        notes: `API ${trade.symbol}`,
+        importedFrom: source,
+        importRef: trade.externalId,
+      });
+      newCount += 1;
+    } catch {
+      dupCount += 1;
+    }
+  }
+  return { newCount, dupCount };
+}
+
 export async function listSyncJobs(limit = 20) {
   return db.select().from(syncJobs).orderBy(desc(syncJobs.startedAt)).limit(limit);
 }
@@ -155,4 +234,36 @@ export async function listOpenDrifts() {
     .from(reconciliationLogs)
     .where(eq(reconciliationLogs.resolved, false))
     .orderBy(desc(reconciliationLogs.createdAt));
+}
+
+export async function acceptApiAsTruth(logId: string) {
+  const log = await db.query.reconciliationLogs.findFirst({
+    where: eq(reconciliationLogs.id, logId),
+  });
+  if (!log || log.resolved) throw new Error("Drift no encontrado");
+  const delta = log.apiBalance - log.dbBalance;
+  if (Math.abs(delta) > 1e-12) {
+    await db.insert(transactions).values({
+      date: new Date().toISOString().slice(0, 10),
+      assetId: log.assetId,
+      type: "adjustment",
+      quantity: delta,
+      unitPrice: 0,
+      priceCurrency: "USD",
+      fxRate: 1,
+      totalUsd: 0,
+      platform: "reconciliation",
+      notes: "Aceptado balance API",
+      importedFrom: "reconciliation",
+      importRef: log.id,
+    });
+  }
+  await db
+    .update(reconciliationLogs)
+    .set({
+      resolved: true,
+      resolutionAction: "accepted_api",
+      resolvedAt: new Date().toISOString(),
+    })
+    .where(eq(reconciliationLogs.id, logId));
 }

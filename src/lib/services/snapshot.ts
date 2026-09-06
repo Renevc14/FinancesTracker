@@ -8,6 +8,7 @@ import {
   monthlySnapshots,
   priceSnapshots,
   transactions,
+  type PriceSource,
   type SnapshotByAsset,
   type SnapshotByClass,
 } from "@/lib/db/schema";
@@ -165,6 +166,7 @@ export async function upsertPriceSnapshot(input: {
   assetId: string;
   date: string;
   priceUsd: number;
+  source?: PriceSource;
 }) {
   const existing = await db.query.priceSnapshots.findFirst({
     where: and(
@@ -175,7 +177,10 @@ export async function upsertPriceSnapshot(input: {
   if (existing) {
     const [updated] = await db
       .update(priceSnapshots)
-      .set({ priceUsd: input.priceUsd, source: "manual" })
+      .set({
+        priceUsd: input.priceUsd,
+        source: input.source ?? existing.source,
+      })
       .where(eq(priceSnapshots.id, existing.id))
       .returning();
     return updated;
@@ -186,7 +191,7 @@ export async function upsertPriceSnapshot(input: {
       assetId: input.assetId,
       date: input.date,
       priceUsd: input.priceUsd,
-      source: "manual",
+      source: input.source ?? "manual",
     })
     .returning();
   return created;

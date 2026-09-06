@@ -249,7 +249,7 @@ export async function saveApiCredentialAction(formData: FormData): Promise<Actio
   const apiKey = String(formData.get("apiKey") ?? "").trim();
   const apiSecret = String(formData.get("apiSecret") ?? "").trim();
   const flexQueryId = String(formData.get("flexQueryId") ?? "").trim();
-  if (provider !== "binance" && provider !== "ibkr_flex") {
+  if (provider !== "binance" && provider !== "ibkr_flex" && provider !== "kraken") {
     return { ok: false, error: "Provider no soportado" };
   }
   if (!label || !apiKey || !apiSecret) {
@@ -293,17 +293,115 @@ export async function runManualSyncAction(
 
 export async function resolveDriftAction(
   logId: string,
-  action: "ignored" | "investigated",
+  action: "ignored" | "investigated" | "accepted_api",
 ): Promise<ActionResult> {
-  const { reconciliationLogs } = await import("@/lib/db/schema");
+  try {
+    if (action === "accepted_api") {
+      const { acceptApiAsTruth } = await import("@/lib/exchanges/sync-manager");
+      await acceptApiAsTruth(logId);
+      revalidatePath("/reconciliation");
+      revalidatePath("/dashboard");
+      revalidatePath("/transactions");
+      return { ok: true, data: undefined };
+    }
+    const { reconciliationLogs } = await import("@/lib/db/schema");
+    await db
+      .update(reconciliationLogs)
+      .set({
+        resolved: true,
+        resolutionAction: action,
+        resolvedAt: new Date().toISOString(),
+      })
+      .where(eq(reconciliationLogs.id, logId));
+    revalidatePath("/reconciliation");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo resolver",
+    };
+  }
+}
+
+export async function refreshMarketsAction(): Promise<
+  ActionResult<{ prices: number; fx: number }>
+> {
+  try {
+    const { refreshLiveMarkets } = await import("@/lib/services/market");
+    const result = await refreshLiveMarkets();
+    revalidatePath("/dashboard");
+    revalidatePath("/settings/fx");
+    revalidatePath("/settings/assets");
+    if (result.errors.length && result.prices === 0 && result.fx === 0) {
+      return { ok: false, error: result.errors[0] ?? "Refresh falló" };
+    }
+    return { ok: true, data: { prices: result.prices, fx: result.fx } };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Refresh falló",
+    };
+  }
+}
+
+export async function createBankAccountAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
+  const name = String(formData.get("name") ?? "").trim();
+  const bank = String(formData.get("bank") ?? "").trim();
+  const currency = String(formData.get("currency") ?? "BOB").trim() || "BOB";
+  const accountType =
+    formData.get("accountType") === "savings" ? "savings" : "checking";
+  if (!name || !bank) return { ok: false, error: "Nombre y banco son obligatorios" };
+  try {
+    const { createBankAccount } = await import("@/lib/services/banks");
+    const row = await createBankAccount({ name, bank, currency, accountType });
+    revalidatePath("/settings/banks");
+    return { ok: true, data: { id: row.id } };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo crear la cuenta",
+    };
+  }
+}
+
+export async function addBankBalanceAction(formData: FormData): Promise<ActionResult> {
+  const accountId = String(formData.get("accountId") ?? "");
+  const balanceLocal = Number(formData.get("balanceLocal"));
+  if (!accountId || !Number.isFinite(balanceLocal)) {
+    return { ok: false, error: "Saldo inválido" };
+  }
+  try {
+    const { addBankBalance } = await import("@/lib/services/banks");
+    await addBankBalance({ accountId, balanceLocal });
+    revalidatePath("/settings/banks");
+    revalidatePath("/dashboard");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo guardar el saldo",
+    };
+  }
+}
+
+export async function saveFireConfigAction(formData: FormData): Promise<ActionResult> {
+  const target = Number(formData.get("fireTargetAmount"));
+  const monthly = Number(formData.get("fireExpectedContribution"));
+  const ret = Number(formData.get("fireExpectedReturn"));
+  const date = String(formData.get("fireTargetDate") ?? "").trim() || null;
+  if (!Number.isFinite(target) || target <= 0) {
+    return { ok: false, error: "Meta inválida" };
+  }
   await db
-    .update(reconciliationLogs)
+    .update(userConfig)
     .set({
-      resolved: true,
-      resolutionAction: action,
-      resolvedAt: new Date().toISOString(),
+      fireTargetAmount: target,
+      fireExpectedContribution: Number.isFinite(monthly) ? monthly : 2000,
+      fireExpectedReturn: Number.isFinite(ret) ? ret : 0.07,
+      fireTargetDate: date,
+      updatedAt: new Date().toISOString(),
     })
-    .where(eq(reconciliationLogs.id, logId));
-  revalidatePath("/reconciliation");
+    .where(eq(userConfig.id, "default"));
+  revalidatePath("/fire");
   return { ok: true, data: undefined };
 }

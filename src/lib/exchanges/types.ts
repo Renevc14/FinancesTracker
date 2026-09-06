@@ -35,4 +35,5 @@ export interface ExchangeClient {
   readonly providerName: string;
   testConnection(): Promise<ConnectionTest>;
   getBalances(): Promise<Balance[]>;
+  getTrades?(symbols?: string[]): Promise<Trade[]>;
 }

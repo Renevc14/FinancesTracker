@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { captureMonthlySnapshot } from "@/lib/services/snapshot";
+import { refreshLiveMarkets } from "@/lib/services/market";
 import { runSync } from "@/lib/exchanges/sync-manager";
 import { db } from "@/lib/db";
 import { apiCredentials } from "@/lib/db/schema";
@@ -22,6 +23,13 @@ export async function GET(request: Request) {
     .from(apiCredentials)
     .where(eq(apiCredentials.active, true));
 
+  let markets: { prices: number; fx: number } | null = null;
+  try {
+    markets = await refreshLiveMarkets();
+  } catch (err) {
+    console.error("[cron markets]", err);
+  }
+
   const syncIds: string[] = [];
   for (const cred of creds) {
     try {
@@ -34,6 +42,7 @@ export async function GET(request: Request) {
   const snap = await captureMonthlySnapshot("cron");
   return NextResponse.json({
     ok: true,
+    markets,
     syncIds,
     snapshot: snap?.snapshotDate,
   });

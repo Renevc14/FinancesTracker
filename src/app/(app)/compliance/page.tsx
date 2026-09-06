@@ -1,6 +1,7 @@
 import { getSpain720Status } from "@/lib/services/compliance";
 import { classLabel } from "@/lib/labels";
 import { formatMoney, formatPct } from "@/lib/utils";
+import { PrintButton } from "@/components/forms/print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function CompliancePage() {
         <p className="text-[13px] text-[var(--muted)]">
           Umbral {formatMoney(status.thresholdEur, "EUR")}
         </p>
+        <PrintButton />
       </section>
       <ul className="ios-group">
         {status.byClass.map((c) => (
