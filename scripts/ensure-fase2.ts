@@ -78,6 +78,34 @@ const statements = [
     source text DEFAULT 'manual' NOT NULL,
     created_at text DEFAULT (datetime('now')) NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS crypto_loans (
+    id text PRIMARY KEY NOT NULL,
+    provider text DEFAULT 'binance' NOT NULL,
+    external_ref text NOT NULL,
+    product text NOT NULL,
+    loan_coin text NOT NULL,
+    total_debt real NOT NULL,
+    collateral_coin text NOT NULL,
+    collateral_amount real NOT NULL,
+    current_ltv real,
+    status text DEFAULT 'ongoing' NOT NULL,
+    deleted_at text,
+    created_at text DEFAULT (datetime('now')) NOT NULL,
+    updated_at text DEFAULT (datetime('now')) NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS crypto_loans_provider_ref_uidx ON crypto_loans (provider, external_ref)`,
+  `CREATE TABLE IF NOT EXISTS wallet_snapshots (
+    id text PRIMARY KEY NOT NULL,
+    provider text DEFAULT 'binance' NOT NULL,
+    asset text NOT NULL,
+    spot real DEFAULT 0 NOT NULL,
+    earn real DEFAULT 0 NOT NULL,
+    funding real DEFAULT 0 NOT NULL,
+    collateral real DEFAULT 0 NOT NULL,
+    total real NOT NULL,
+    captured_at text DEFAULT (datetime('now')) NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS wallet_snapshots_provider_asset_uidx ON wallet_snapshots (provider, asset)`,
 ];
 
 async function main() {

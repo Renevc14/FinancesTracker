@@ -1,28 +1,43 @@
 import { db } from "@/lib/db";
-import { assets, reconciliationLogs } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { assets, reconciliationLogs, syncJobs } from "@/lib/db/schema";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { IgnoreDriftButton } from "@/components/forms/ignore-drift-button";
 import { formatPct } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReconciliationPage() {
-  const rows = await db
-    .select({
-      log: reconciliationLogs,
-      ticker: assets.ticker,
-    })
-    .from(reconciliationLogs)
-    .innerJoin(assets, eq(assets.id, reconciliationLogs.assetId))
-    .where(eq(reconciliationLogs.resolved, false))
-    .orderBy(desc(reconciliationLogs.createdAt));
+  const [latest] = await db
+    .select({ id: syncJobs.id })
+    .from(syncJobs)
+    .orderBy(desc(syncJobs.startedAt))
+    .limit(1);
+
+  const rows = latest
+    ? await db
+        .select({
+          log: reconciliationLogs,
+          ticker: assets.ticker,
+        })
+        .from(reconciliationLogs)
+        .innerJoin(assets, eq(assets.id, reconciliationLogs.assetId))
+        .where(
+          and(
+            eq(reconciliationLogs.syncJobId, latest.id),
+            eq(reconciliationLogs.resolved, false),
+            ne(reconciliationLogs.status, "ok"),
+          ),
+        )
+        .orderBy(desc(reconciliationLogs.createdAt))
+    : [];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="ios-large-title">Reconciliación</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Drift API vs lo calculado en el tracker
+          Drift del último sync: API (Spot + Earn + Funding + colateral) vs el
+          libro
         </p>
       </div>
       <ul className="space-y-3">

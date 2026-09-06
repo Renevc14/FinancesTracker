@@ -4,11 +4,13 @@ import {
   assets,
   bankAccounts,
   bankBalanceSnapshots,
+  cryptoLoans,
   fxRates,
   landContracts,
   landPayments,
   priceSnapshots,
   transactions,
+  walletSnapshots,
   type AssetClass,
   type DisplayCurrency,
 } from "@/lib/db/schema";
@@ -25,6 +27,7 @@ export type HoldingRow = {
   marketValueUsd: number;
   pnlUsd: number;
   pnlPct: number;
+  custodyLabel: string | null;
 };
 
 export type ClassBreakdown = {
@@ -61,6 +64,16 @@ export type DashboardKpis = {
   } | null;
   displayCurrency: DisplayCurrency;
   fxToDisplay: number;
+  debtUsd: number;
+  grossMarketValueUsd: number;
+  loans: Array<{
+    loanCoin: string;
+    totalDebt: number;
+    debtUsd: number;
+    collateralCoin: string;
+    collateralAmount: number;
+    currentLtv: number | null;
+  }>;
 };
 
 async function getLatestFx(
@@ -99,6 +112,9 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
 
   const financialAssets = allAssets.filter((a) => a.class !== "land");
   const landAssets = allAssets.filter((a) => a.class === "land");
+
+  const wallets = await db.select().from(walletSnapshots);
+  const walletByAsset = new Map(wallets.map((w) => [w.asset.toUpperCase(), w]));
 
   const holdings: HoldingRow[] = [];
 
@@ -152,6 +168,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       marketValueUsd,
       pnlUsd,
       pnlPct,
+      custodyLabel: custodyLabelFor(walletByAsset.get(asset.ticker.toUpperCase())),
     });
   }
 
@@ -202,6 +219,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       marketValueUsd: investedUsd,
       pnlUsd: 0,
       pnlPct: 0,
+      custodyLabel: null,
     });
   }
 
@@ -227,6 +245,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       marketValueUsd: latest.balanceUsd,
       pnlUsd: 0,
       pnlPct: 0,
+      custodyLabel: null,
     });
   }
 
@@ -234,10 +253,32 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     .filter((h) => h.class === "cash")
     .reduce((s, h) => s + h.marketValueUsd, 0);
 
-  // Lotes al costo: lo pagado forma parte del valor estimado.
-  // Cash bancario entra al NAV; G/P sigue siendo solo financiero.
+  const openLoans = await db
+    .select()
+    .from(cryptoLoans)
+    .where(
+      and(eq(cryptoLoans.status, "ongoing"), isNull(cryptoLoans.deletedAt)),
+    );
+  const loans = openLoans.map((loan) => {
+    const debtUsd = debtToUsd(
+      loan.loanCoin,
+      loan.totalDebt,
+      holdings,
+    );
+    return {
+      loanCoin: loan.loanCoin,
+      totalDebt: loan.totalDebt,
+      debtUsd,
+      collateralCoin: loan.collateralCoin,
+      collateralAmount: loan.collateralAmount,
+      currentLtv: loan.currentLtv,
+    };
+  });
+  const debtUsd = loans.reduce((s, l) => s + l.debtUsd, 0);
+
+  const grossMarketValueUsd = financialValue + landPaidUsd + cashUsd;
   const totalInvestedUsd = financialInvested + landPaidUsd + cashUsd;
-  const totalMarketValueUsd = financialValue + landPaidUsd + cashUsd;
+  const totalMarketValueUsd = grossMarketValueUsd - debtUsd;
   const pnlUsd = financialValue - financialInvested;
   const pnlPct =
     financialInvested !== 0 ? (pnlUsd / financialInvested) * 100 : 0;
@@ -256,8 +297,8 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       investedUsd: v.invested,
       marketValueUsd: v.value,
       weightPct:
-        totalMarketValueUsd > 0
-          ? (v.value / totalMarketValueUsd) * 100
+        grossMarketValueUsd > 0
+          ? (v.value / grossMarketValueUsd) * 100
           : 0,
     }),
   );
@@ -330,9 +371,45 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     nextLandPayment,
     displayCurrency,
     fxToDisplay,
+    debtUsd,
+    grossMarketValueUsd,
+    loans,
   };
 }
 
 export function convertFromUsd(amountUsd: number, fxToDisplay: number): number {
   return amountUsd * fxToDisplay;
+}
+
+function custodyLabelFor(
+  wallet:
+    | {
+        spot: number;
+        earn: number;
+        funding: number;
+        collateral: number;
+      }
+    | undefined,
+): string | null {
+  if (!wallet) return null;
+  const parts: string[] = [];
+  if (wallet.earn > 0) parts.push("Earn");
+  if (wallet.collateral > 0) parts.push("colateral");
+  if (wallet.funding > 0) parts.push("Funding");
+  if (wallet.spot > 0 && parts.length > 0) parts.unshift("Spot");
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function debtToUsd(
+  loanCoin: string,
+  totalDebt: number,
+  holdings: HoldingRow[],
+): number {
+  const ticker = loanCoin.toUpperCase();
+  if (["USDT", "USDC", "BUSD", "FDUSD", "USD"].includes(ticker)) {
+    return totalDebt;
+  }
+  const holding = holdings.find((h) => h.ticker.toUpperCase() === ticker);
+  if (holding?.priceUsd) return totalDebt * holding.priceUsd;
+  return totalDebt;
 }

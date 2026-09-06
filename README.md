@@ -216,7 +216,7 @@ La carpeta `/data` y `*.db` están en `.gitignore`.
 
 | Origen | Estado |
 |--------|--------|
-| Binance Spot | API `myTrades` (fuente de verdad BTC/ETH/SOL USDT+USDC) + parser CSV fallback |
+| Binance Spot | API `myTrades` (fuente de verdad BTC/ETH/SOL USDT+USDC desde feb 2026) + Earn/Funding/préstamos + parser CSV fallback |
 | Binance Auto-Invest | Stub tipado |
 | IBKR Flex | Stub tipado |
 

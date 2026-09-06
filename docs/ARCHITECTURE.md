@@ -64,10 +64,11 @@ Portfolio values can be displayed in USD, EUR, or BOB using stored FX. Toggle is
 ## Import pipeline
 
 1. **Binance Spot (source of truth for catalog crypto):** `/sync` paginates `/api/v3/myTrades` for `{TICKER}USDT` and `{TICKER}USDC` from **2026-02-01** (portfolio start). Older fills are ignored. Buys/sells that are not `binance_api` are soft-deleted only if at least one in-range API fill landed for that asset.
-2. Upload / paste CSV on `/transactions/import` (fallback, plus Auto-Invest / IBKR)
-3. Parser selected by source (`binance/spot`, Auto-Invest, IBKR)
-4. Validate rows → typed `ImportRow` contracts
-5. Dedupe against DB → insert transactions
+2. **Binance Earn / loans:** same sync pulls Simple Earn positions + reward history, Funding wallet, and ongoing crypto loans. Reconciliation uses Spot + Earn + Funding + collateral. NAV subtracts outstanding loan debt.
+3. Upload / paste CSV on `/transactions/import` (fallback, plus Auto-Invest / IBKR)
+4. Parser selected by source (`binance/spot`, Auto-Invest, IBKR)
+5. Validate rows → typed `ImportRow` contracts
+6. Dedupe against DB → insert transactions
 
 ## Non-goals (current phase)
 

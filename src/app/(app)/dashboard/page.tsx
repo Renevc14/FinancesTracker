@@ -70,6 +70,11 @@ export default async function DashboardPage() {
             Incluye lotes al costo · {money(dash.landPaidUsd)}
           </p>
         )}
+        {dash.debtUsd > 0 && (
+          <p className="text-[13px] text-[var(--muted)]">
+            Neto de préstamo Binance · {money(dash.debtUsd)}
+          </p>
+        )}
         <div className="pt-1">
           <RefreshMarketsButton />
         </div>
@@ -129,6 +134,36 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {dash.loans.length > 0 && (
+        <section className="animate-fade-in space-y-3">
+          <h2 className="ios-title px-0.5">Préstamos</h2>
+          <ul className="ios-group">
+            {dash.loans.map((loan) => (
+              <li
+                key={`${loan.loanCoin}-${loan.collateralCoin}`}
+                className="ios-row"
+              >
+                <div className="min-w-0">
+                  <p className="ios-headline">
+                    {formatQuantity(loan.totalDebt)} {loan.loanCoin}
+                  </p>
+                  <p className="text-[13px] text-[var(--muted)]">
+                    Colateral {formatQuantity(loan.collateralAmount)}{" "}
+                    {loan.collateralCoin}
+                    {loan.currentLtv != null
+                      ? ` · LTV ${(loan.currentLtv * 100).toFixed(1)}%`
+                      : ""}
+                  </p>
+                </div>
+                <p className="money text-[15px] font-semibold text-[var(--negative)]">
+                  −{money(loan.debtUsd)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="animate-fade-in space-y-3">
         <h2 className="ios-title px-0.5">Distribución</h2>
         <div className="ios-group p-4">
@@ -153,6 +188,7 @@ export default async function DashboardPage() {
                     <p className="ios-headline">{h.ticker}</p>
                     <p className="text-[13px] text-[var(--muted)]">
                       {formatQuantity(h.quantity)} · {classLabel(h.class)}
+                      {h.custodyLabel ? ` · ${h.custodyLabel}` : ""}
                     </p>
                   </div>
                   <div className="text-right">

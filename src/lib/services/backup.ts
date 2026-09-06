@@ -3,6 +3,7 @@ import {
   assets,
   bankAccounts,
   bankBalanceSnapshots,
+  cryptoLoans,
   fxRates,
   landContracts,
   landPayments,
@@ -10,6 +11,7 @@ import {
   priceSnapshots,
   transactions,
   userConfig,
+  walletSnapshots,
 } from "@/lib/db/schema";
 
 export async function exportBackupJson(): Promise<string> {
@@ -24,6 +26,8 @@ export async function exportBackupJson(): Promise<string> {
     configRows,
     bankRows,
     bankSnapRows,
+    loanRows,
+    walletRows,
   ] = await Promise.all([
     db.select().from(assets),
     db.select().from(transactions),
@@ -35,6 +39,8 @@ export async function exportBackupJson(): Promise<string> {
     db.select().from(userConfig),
     db.select().from(bankAccounts),
     db.select().from(bankBalanceSnapshots),
+    db.select().from(cryptoLoans),
+    db.select().from(walletSnapshots),
   ]);
 
   return JSON.stringify(
@@ -51,6 +57,8 @@ export async function exportBackupJson(): Promise<string> {
       userConfig: configRows,
       bankAccounts: bankRows,
       bankBalanceSnapshots: bankSnapRows,
+      cryptoLoans: loanRows,
+      walletSnapshots: walletRows,
     },
     null,
     2,

@@ -16,9 +16,9 @@ export default async function SyncPage() {
       <div>
         <h1 className="ios-large-title">Sync</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Binance Spot es la fuente de verdad de compras y ventas de criptos del
-          catálogo (pares USDT y USDC), desde febrero 2026. Fills anteriores no
-          entran al libro.
+          Binance Spot es la fuente de verdad de compras y ventas desde febrero
+          2026. El sync también baja Earn, Funding y préstamos (colateral y
+          deuda).
         </p>
       </div>
       <ul className="ios-group">

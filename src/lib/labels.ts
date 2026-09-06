@@ -13,7 +13,7 @@ export const TX_TYPE_LABELS: Record<TransactionType, string> = {
   sell: "Venta",
   transfer_in: "Entrada",
   transfer_out: "Salida",
-  reward: "Reward",
+  reward: "Earn",
   dividend: "Dividendo",
   fee: "Fee",
   tax: "Impuesto",
