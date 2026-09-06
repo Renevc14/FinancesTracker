@@ -29,7 +29,10 @@ export const landPaymentFormSchema = z.object({
   localCurrency: z.string().min(1).default("BOB"),
   fxRate: z.coerce.number().positive(),
   paymentMethod: z.string().min(1),
-  receiptNumber: z.string().optional(),
+  discountLocal: z.preprocess(
+    (v) => (v === "" || v == null ? 0 : v),
+    z.coerce.number().nonnegative(),
+  ),
   notes: z.string().optional(),
 });
 

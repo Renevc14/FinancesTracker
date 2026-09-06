@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { createTransactionAction } from "@/lib/actions";
 import type { Asset } from "@/lib/db/schema";
 import { transactionTypes } from "@/lib/db/schema";
+import { TX_TYPE_LABELS } from "@/lib/labels";
+import { formatMoney, localISODate } from "@/lib/utils";
 
 export function TransactionForm({ assets }: { assets: Asset[] }) {
   const router = useRouter();
@@ -16,6 +18,11 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
   const [fx, setFx] = useState("1");
+  const [date, setDate] = useState("");
+
+  useEffect(() => {
+    setDate(localISODate());
+  }, []);
 
   const quantity = Number(qty) || 0;
   const unitPrice = Number(price) || 0;
@@ -72,7 +79,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
           <Select id="type" name="type" defaultValue="buy">
             {transactionTypes.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {TX_TYPE_LABELS[t]}
               </option>
             ))}
           </Select>
@@ -84,7 +91,8 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
             name="date"
             type="date"
             required
-            defaultValue={new Date().toISOString().slice(0, 10)}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
           />
         </div>
       </div>
@@ -98,6 +106,8 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
             type="number"
             step="any"
             required
+            inputMode="decimal"
+            placeholder="0"
             value={qty}
             onChange={(e) => setQty(e.target.value)}
           />
@@ -110,13 +120,15 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
             type="number"
             step="any"
             required
+            inputMode="decimal"
+            placeholder="0"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className={currency === "USD" ? "space-y-2" : "grid grid-cols-2 gap-3"}>
         <div className="space-y-2">
           <Label htmlFor="priceCurrency">Moneda</Label>
           <Select
@@ -140,6 +152,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
               type="number"
               step="any"
               required
+              inputMode="decimal"
               value={fx}
               onChange={(e) => setFx(e.target.value)}
             />
@@ -150,11 +163,9 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
         )}
       </div>
 
-      <div className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-sm">
-        Total USD:{" "}
-        <span className="font-mono font-semibold">
-          ${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-        </span>
+      <div className="rounded-[var(--radius)] bg-[var(--surface-2)] px-3 py-2 text-[15px]">
+        Total{" "}
+        <span className="money font-semibold">{formatMoney(totalUsd, "USD")}</span>
       </div>
 
       <div className="space-y-2">

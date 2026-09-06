@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import type { ClassBreakdown } from "@/lib/services/portfolio";
+import { formatMoney } from "@/lib/utils";
 
 const COLORS: Record<string, string> = {
   crypto: "#007AFF",
@@ -25,60 +19,65 @@ const LABELS: Record<string, string> = {
   cash: "Cash",
 };
 
-export function AllocationChart({ data }: { data: ClassBreakdown[] }) {
+export function AllocationChart({
+  data,
+  currency = "USD",
+  fx = 1,
+}: {
+  data: ClassBreakdown[];
+  currency?: string;
+  fx?: number;
+}) {
   const chartData = data
     .filter((d) => d.marketValueUsd > 0)
+    .sort((a, b) => b.marketValueUsd - a.marketValueUsd)
     .map((d) => ({
       name: LABELS[d.class] ?? d.class,
       value: d.marketValueUsd,
       class: d.class,
+      weightPct: d.weightPct,
     }));
 
   if (chartData.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--muted)]">
+      <p className="py-8 text-center text-[15px] text-[var(--muted)]">
         Sin datos de distribución todavía
       </p>
     );
   }
 
+  const money = (usd: number) => formatMoney(usd * fx, currency);
+  let cursor = 0;
+  const gradient = chartData
+    .map((d) => {
+      const start = cursor;
+      cursor += d.weightPct;
+      return `${COLORS[d.class] ?? "#888"} ${start}% ${cursor}%`;
+    })
+    .join(", ");
+
   return (
-    <div className="h-52 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={chartData}
-            dataKey="value"
-            nameKey="name"
-            innerRadius={48}
-            outerRadius={72}
-            paddingAngle={3}
-            strokeWidth={0}
-          >
-            {chartData.map((entry) => (
-              <Cell
-                key={entry.class}
-                fill={COLORS[entry.class] ?? "#888"}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value) =>
-              typeof value === "number"
-                ? `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-                : value
-            }
-          />
-        </PieChart>
-      </ResponsiveContainer>
-      <ul className="mt-2 flex flex-wrap justify-center gap-3 text-xs text-[var(--ink-soft)]">
+    <div className="space-y-5">
+      <div
+        className="relative mx-auto size-[148px] rounded-full"
+        style={{ background: `conic-gradient(${gradient})` }}
+        aria-hidden
+      >
+        <div className="absolute inset-[22px] rounded-full bg-[var(--surface)]" />
+      </div>
+      <ul className="space-y-2.5">
         {chartData.map((d) => (
-          <li key={d.class} className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ background: COLORS[d.class] }}
-            />
-            {d.name}
+          <li key={d.class} className="flex items-center justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-2 text-[15px]">
+              <span
+                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: COLORS[d.class] }}
+              />
+              {d.name}
+            </span>
+            <span className="money shrink-0 text-[13px] text-[var(--muted)]">
+              {d.weightPct.toFixed(1)}% · {money(d.value)}
+            </span>
           </li>
         ))}
       </ul>

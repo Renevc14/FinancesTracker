@@ -36,36 +36,38 @@ export function AppShell({
     <div className="min-h-dvh bg-[var(--bg)] text-[var(--ink)]">
       <header className="ios-blur sticky top-0 z-40 border-b border-[var(--separator)]">
         <div
-          className="mx-auto flex h-11 max-w-lg items-center justify-between px-4"
+          className="mx-auto flex h-12 max-w-lg items-center justify-between gap-3 px-5"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <p className="ios-headline truncate">{title}</p>
+          <p className="ios-headline leading-none">{title}</p>
           <CurrencyToggle current={displayCurrency} />
         </div>
       </header>
 
       <div
-        className="mx-auto max-w-lg px-4 pt-3 md:pb-10"
-        style={{ paddingBottom: "calc(var(--tabbar-h) + 20px)" }}
+        className="mx-auto max-w-lg px-5 pt-5 md:pb-12"
+        style={{ paddingBottom: "calc(var(--tabbar-h) + 24px)" }}
       >
-        <aside className="mb-4 hidden flex-wrap gap-1 md:flex">
-          {links.map((l) => {
-            const active = pathname.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={cn(
-                  "ios-pressable rounded-full px-3 py-1.5 text-[13px] font-semibold",
-                  active
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--surface)] text-[var(--ink-soft)]",
-                )}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
+        <aside className="mb-6 hidden md:block">
+          <nav className="flex rounded-full bg-[var(--surface-3)] p-1">
+            {links.map((l) => {
+              const active = pathname.startsWith(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={cn(
+                    "ios-pressable flex-1 rounded-full px-2 py-1.5 text-center text-[12px] font-semibold tracking-tight",
+                    active
+                      ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_0.5px_1px_rgba(0,0,0,0.12)]"
+                      : "text-[var(--muted)]",
+                  )}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+          </nav>
         </aside>
         <main className="min-w-0 animate-fade-in">{children}</main>
       </div>
@@ -83,7 +85,7 @@ export function AppShell({
                 <Link
                   href={l.href}
                   className={cn(
-                    "ios-pressable flex flex-col items-center gap-0.5 px-1 pb-1 pt-2 text-[10px] font-medium",
+                    "ios-pressable flex flex-col items-center gap-0.5 px-1 pb-1.5 pt-2 text-[10px] font-medium",
                     active ? "text-[var(--accent)]" : "text-[var(--muted)]",
                   )}
                 >
