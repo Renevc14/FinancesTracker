@@ -7,8 +7,9 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLogin = pathname.startsWith("/login");
   const isAuthApi = pathname.startsWith("/api/auth");
+  const isCron = pathname.startsWith("/api/cron");
 
-  if (isAuthApi) return NextResponse.next();
+  if (isAuthApi || isCron) return NextResponse.next();
 
   if (!isLoggedIn && !isLogin) {
     const url = new URL("/login", req.nextUrl.origin);

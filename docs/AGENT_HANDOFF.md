@@ -12,6 +12,16 @@ Context for Cursor Cloud / Desktop agents picking up this repo.
 
 ## First 5 minutes
 
+Preferred on the owner PC (Docker Desktop):
+
+```bash
+cp .env.example .env.local   # or Copy-Item on Windows
+# set AUTH_SECRET, AUTH_USERNAME, AUTH_PASSWORD
+docker compose up --build
+```
+
+Without Docker:
+
 ```bash
 cp .env.example .env.local   # or Copy-Item on Windows
 # set AUTH_SECRET, AUTH_USERNAME, AUTH_PASSWORD
@@ -27,26 +37,28 @@ Smoke:
 - unauthenticated `/dashboard` → 307 to login
 - after login: dashboard, transactions, land, snapshots, settings, import
 
-## What works today (Fase 0–1)
+## What works today
 
 - Auth (server action login)
 - Transactions CRUD
-- Land lots M-176-15 / M-176-16 + payment flows + tabs
+- Land lots M-176-15 / M-176-16 + payment flows (receipt file + optional discount)
 - Dashboard KPIs + allocation + currency toggle
+- **Patrimonio incluye lotes al costo** (pagado); saldo pendiente en comprometido
 - Manual monthly snapshots
-- Settings: assets + FX
-- Binance Spot parser + defensive import layer
-- Apple HIG UI polish
+- Settings: assets, FX, API credentials
+- Sync / reconciliation / FIRE / Modelo 720 screens
+- Binance Spot + Auto-Invest + IBKR Flex CSV parsers
+- Docker Compose local run
 
 ## Do next (unless user says otherwise)
 
 Priority backlog:
 
-1. Complete Auto-Invest + IBKR Flex parsers (replace stubs)
-2. Live FX / price feeds + scheduled snapshots
-3. Harden auth (TOTP optional)
-4. Vercel + Turso production deploy
-5. Spain 720/721 / FIRE (later phases)
+1. Full trade history import from Binance API (not only balances/recon)
+2. IBKR Flex XML client (CSV parser is in)
+3. Live FX / price feeds
+4. Harden auth (TOTP)
+5. Vercel + Turso production deploy
 
 ## Conventions
 

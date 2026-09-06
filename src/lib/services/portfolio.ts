@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   assets,
@@ -167,10 +167,6 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     .where(isNull(landPayments.deletedAt));
 
   const landPaidUsd = payments.reduce((s, p) => s + p.amountUsd, 0);
-  const landCommittedUsd = contracts.reduce((s, c) => {
-    const fx = 1; // priceLocal is BOB — convert with latest USD/BOB inverse
-    return s + c.priceLocal; // will convert below
-  }, 0);
 
   const bobPerUsd = await getLatestFx("USD", "BOB");
   const landCommittedUsdConverted =
@@ -187,11 +183,33 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     landCommittedUsdConverted - landPaidUsd,
   );
 
+  for (const asset of landAssets) {
+    const lotPays = payments.filter((p) => p.landAssetId === asset.id);
+    const investedUsd = lotPays.reduce((s, p) => s + p.amountUsd, 0);
+    if (investedUsd <= 0) continue;
+    const contract = contracts.find((c) => c.landAssetId === asset.id);
+    holdings.push({
+      assetId: asset.id,
+      ticker: asset.ticker,
+      name: asset.name,
+      class: "land",
+      quantity: contract?.surfaceM2 ?? 1,
+      investedUsd,
+      priceUsd: null,
+      priceDate: lotPays[0]?.date ?? null,
+      marketValueUsd: investedUsd,
+      pnlUsd: 0,
+      pnlPct: 0,
+    });
+  }
+
+  // Lotes al costo: lo pagado (ahorro mensual) forma parte del valor estimado.
+  // El saldo pendiente sigue en "comprometido", no infla el patrimonio.
   const totalInvestedUsd = financialInvested + landPaidUsd;
-  const totalMarketValueUsd = financialValue + landEstimatedValueUsd;
-  const pnlUsd = totalMarketValueUsd - totalInvestedUsd;
+  const totalMarketValueUsd = financialValue + landPaidUsd;
+  const pnlUsd = financialValue - financialInvested;
   const pnlPct =
-    totalInvestedUsd !== 0 ? (pnlUsd / totalInvestedUsd) * 100 : 0;
+    financialInvested !== 0 ? (pnlUsd / financialInvested) * 100 : 0;
 
   const classMap = new Map<AssetClass, { invested: number; value: number }>();
   for (const h of holdings) {
@@ -199,12 +217,6 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     cur.invested += h.investedUsd;
     cur.value += h.marketValueUsd;
     classMap.set(h.class, cur);
-  }
-  if (landPaidUsd > 0 || landEstimatedValueUsd > 0) {
-    classMap.set("land", {
-      invested: landPaidUsd,
-      value: landEstimatedValueUsd,
-    });
   }
 
   const byClass: ClassBreakdown[] = [...classMap.entries()].map(
@@ -270,8 +282,6 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     ?.date;
   const lastUpdated =
     [lastTx, lastPay].filter(Boolean).sort().reverse()[0] ?? null;
-
-  void landCommittedUsd; // computed for clarity; converted version used
 
   return {
     totalInvestedUsd,

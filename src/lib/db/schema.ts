@@ -23,6 +23,10 @@ export const transactionTypes = [
   "transfer_in",
   "transfer_out",
   "reward",
+  "dividend",
+  "fee",
+  "tax",
+  "adjustment",
 ] as const;
 export type TransactionType = (typeof transactionTypes)[number];
 
@@ -184,6 +188,12 @@ export const landPayments = sqliteTable(
     notes: text("notes"),
     deletedAt: text("deleted_at"),
     ...timestamps,
+    receiptPath: text("receipt_path"),
+    receiptName: text("receipt_name"),
+    receiptMime: text("receipt_mime"),
+    discountLocal: real("discount_local")
+      .notNull()
+      .default(sql`0`),
   },
   (t) => [index("land_payments_asset_date_idx").on(t.landAssetId, t.date)],
 );
@@ -294,10 +304,148 @@ export const userConfig = sqliteTable("user_config", {
   fireExpectedContribution: real("fire_expected_contribution").default(2000),
   eurUsdThreshold: real("eur_usd_threshold").default(50_000),
   timezone: text("timezone").notNull().default("America/La_Paz"),
+  reconciliationDriftThreshold: real("reconciliation_drift_threshold")
+    .notNull()
+    .default(0.005),
+  syncSchedule: text("sync_schedule").notNull().default("0 6 * * *"),
   notificationPreferences: text("notification_preferences", { mode: "json" })
     .$type<Record<string, boolean>>()
     .default({}),
   updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+export const apiProviders = ["binance", "ibkr_flex", "kraken"] as const;
+export type ApiProvider = (typeof apiProviders)[number];
+
+export const apiCredentials = sqliteTable("api_credentials", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  provider: text("provider").$type<ApiProvider>().notNull(),
+  label: text("label").notNull(),
+  apiKeyCipher: text("api_key_cipher").notNull(),
+  apiSecretCipher: text("api_secret_cipher").notNull(),
+  additionalConfig: text("additional_config", { mode: "json" })
+    .$type<Record<string, string>>()
+    .default({}),
+  lastVerifiedAt: text("last_verified_at"),
+  lastVerificationStatus: text("last_verification_status")
+    .$type<"ok" | "expired" | "invalid" | "insufficient_scopes">()
+    .default("ok"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  revokedAt: text("revoked_at"),
+  ...timestamps,
+});
+
+export const syncJobs = sqliteTable(
+  "sync_jobs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    credentialId: text("credential_id")
+      .notNull()
+      .references(() => apiCredentials.id),
+    triggeredBy: text("triggered_by")
+      .$type<"cron" | "manual" | "onboarding">()
+      .notNull(),
+    startedAt: text("started_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    finishedAt: text("finished_at"),
+    status: text("status")
+      .$type<"running" | "success" | "partial" | "failed">()
+      .notNull()
+      .default("running"),
+    recordsFetched: integer("records_fetched").notNull().default(0),
+    recordsNew: integer("records_new").notNull().default(0),
+    recordsDuplicate: integer("records_duplicate").notNull().default(0),
+    recordsUpdated: integer("records_updated").notNull().default(0),
+    errors: text("errors", { mode: "json" }).$type<string[]>().default([]),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [index("sync_jobs_cred_started_idx").on(t.credentialId, t.startedAt)],
+);
+
+export const syncLogs = sqliteTable("sync_logs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  syncJobId: text("sync_job_id")
+    .notNull()
+    .references(() => syncJobs.id),
+  level: text("level").$type<"info" | "warn" | "error">().notNull(),
+  message: text("message").notNull(),
+  context: text("context", { mode: "json" }).$type<Record<string, unknown>>(),
+  timestamp: text("timestamp")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+export const reconciliationLogs = sqliteTable("reconciliation_logs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  syncJobId: text("sync_job_id")
+    .notNull()
+    .references(() => syncJobs.id),
+  assetId: text("asset_id")
+    .notNull()
+    .references(() => assets.id),
+  apiBalance: real("api_balance").notNull(),
+  dbBalance: real("db_balance").notNull(),
+  driftAbsolute: real("drift_absolute").notNull(),
+  driftPct: real("drift_pct").notNull(),
+  status: text("status").$type<"ok" | "warning" | "critical">().notNull(),
+  resolved: integer("resolved", { mode: "boolean" }).notNull().default(false),
+  resolutionAction: text("resolution_action").$type<
+    "accepted_api" | "accepted_db" | "ignored" | "investigated"
+  >(),
+  resolutionNotes: text("resolution_notes"),
+  resolvedAt: text("resolved_at"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+export const bankAccounts = sqliteTable("bank_accounts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  bank: text("bank").notNull(),
+  accountNumber: text("account_number"),
+  currency: text("currency").notNull().default("BOB"),
+  accountType: text("account_type")
+    .$type<"checking" | "savings">()
+    .notNull()
+    .default("checking"),
+  country: text("country").notNull().default("BO"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
+export const bankBalanceSnapshots = sqliteTable("bank_balance_snapshots", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  accountId: text("account_id")
+    .notNull()
+    .references(() => bankAccounts.id),
+  date: text("date").notNull(),
+  balanceLocal: real("balance_local").notNull(),
+  fxRate: real("fx_rate").notNull(),
+  balanceUsd: real("balance_usd").notNull(),
+  notes: text("notes"),
+  source: text("source")
+    .$type<"manual" | "csv_import" | "api_future">()
+    .notNull()
+    .default("manual"),
+  createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
 });
@@ -314,3 +462,7 @@ export type PriceSnapshot = typeof priceSnapshots.$inferSelect;
 export type FxRate = typeof fxRates.$inferSelect;
 export type MonthlySnapshot = typeof monthlySnapshots.$inferSelect;
 export type UserConfig = typeof userConfig.$inferSelect;
+export type ApiCredential = typeof apiCredentials.$inferSelect;
+export type SyncJob = typeof syncJobs.$inferSelect;
+export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
+export type BankAccount = typeof bankAccounts.$inferSelect;

@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { AllocationChart } from "@/components/charts/allocation-chart";
 import { Progress } from "@/components/ui/progress";
+import { classLabel, txTypeLabel } from "@/lib/labels";
 import {
   convertFromUsd,
   getPortfolioDashboard,
 } from "@/lib/services/portfolio";
-import { formatDate, formatMoney, formatPct } from "@/lib/utils";
+import {
+  formatDate,
+  formatMoney,
+  formatPct,
+  formatQuantity,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -15,23 +21,32 @@ export default async function DashboardPage() {
   const cur = dash.displayCurrency;
   const money = (usd: number) => formatMoney(convertFromUsd(usd, fx), cur);
   const pnlPositive = dash.pnlUsd >= 0;
+  const landPct =
+    dash.landCommittedUsd > 0
+      ? (dash.landPaidUsd / dash.landCommittedUsd) * 100
+      : 0;
 
   return (
-    <div className="space-y-6">
-      <section className="animate-fade-in space-y-1 pt-2">
-        <p className="text-[13px] text-[var(--muted)]">Patrimonio total</p>
-        <h1 className="ios-large-title font-mono tracking-tight">
-          {money(dash.totalMarketValueUsd)}
-        </h1>
+    <div className="space-y-8">
+      <section className="animate-fade-in space-y-1.5">
+        <p className="text-[13px] font-medium text-[var(--muted)]">
+          Patrimonio total
+        </p>
+        <h1 className="ios-large-title money">{money(dash.totalMarketValueUsd)}</h1>
         <p
-          className={`text-[15px] font-medium ${pnlPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
+          className={`text-[15px] font-semibold ${pnlPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
         >
-          {pnlPositive ? "▲" : "▼"} {money(Math.abs(dash.pnlUsd))} (
-          {formatPct(dash.pnlPct)})
+          {pnlPositive ? "▲" : "▼"} {money(Math.abs(dash.pnlUsd))}{" "}
+          <span className="font-medium">({formatPct(dash.pnlPct)})</span>
         </p>
         {dash.lastUpdated && (
           <p className="text-[13px] text-[var(--muted-2)]">
             Actualizado {formatDate(dash.lastUpdated)}
+          </p>
+        )}
+        {dash.landPaidUsd > 0 && (
+          <p className="text-[13px] text-[var(--muted)]">
+            Incluye lotes al costo · {money(dash.landPaidUsd)}
           </p>
         )}
       </section>
@@ -56,8 +71,8 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="animate-fade-in space-y-2">
-        <div className="flex items-center justify-between px-1">
+      <section className="animate-fade-in space-y-3">
+        <div className="flex items-baseline justify-between px-0.5">
           <h2 className="ios-title">Terrenos</h2>
           <Link
             href="/land"
@@ -67,38 +82,77 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <div className="ios-group space-y-3 p-4">
-          <p className="text-[15px] text-[var(--ink-soft)]">
-            Pagado {money(dash.landPaidUsd)} de {money(dash.landCommittedUsd)}
-          </p>
-          <Progress
-            value={
-              dash.landCommittedUsd > 0
-                ? (dash.landPaidUsd / dash.landCommittedUsd) * 100
-                : 0
-            }
-          />
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[15px] text-[var(--ink-soft)]">Pagado</p>
+            <p className="money text-[15px] font-semibold">
+              {money(dash.landPaidUsd)}
+              <span className="ml-1 font-normal text-[var(--muted)]">
+                de {money(dash.landCommittedUsd)}
+              </span>
+            </p>
+          </div>
+          <Progress value={landPct} />
           {dash.nextLandPayment && (
-            <p className="text-[13px] text-[var(--warn)]">
-              Próximo: {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
+            <p className="text-[13px] leading-snug text-[var(--warn)]">
+              Próximo {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
               {formatMoney(
                 dash.nextLandPayment.amountLocal,
                 dash.nextLandPayment.currency,
               )}{" "}
-              ({dash.nextLandPayment.landTicker})
+              · {dash.nextLandPayment.landTicker}
             </p>
           )}
         </div>
       </section>
 
-      <section className="animate-fade-in space-y-2">
-        <h2 className="ios-title px-1">Distribución</h2>
+      <section className="animate-fade-in space-y-3">
+        <h2 className="ios-title px-0.5">Distribución</h2>
         <div className="ios-group p-4">
-          <AllocationChart data={dash.byClass} />
+          <AllocationChart
+            data={dash.byClass}
+            currency={cur}
+            fx={fx}
+          />
         </div>
       </section>
 
-      <section className="animate-fade-in space-y-2">
-        <div className="flex items-center justify-between px-1">
+      {dash.holdings.length > 0 && (
+        <section className="animate-fade-in space-y-3">
+          <h2 className="ios-title px-0.5">Holdings</h2>
+          <ul className="ios-group">
+            {dash.holdings
+              .slice()
+              .sort((a, b) => b.marketValueUsd - a.marketValueUsd)
+              .map((h) => (
+                <li key={h.assetId} className="ios-row">
+                  <div className="min-w-0">
+                    <p className="ios-headline">{h.ticker}</p>
+                    <p className="text-[13px] text-[var(--muted)]">
+                      {formatQuantity(h.quantity)} · {classLabel(h.class)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="money text-[15px] font-semibold">
+                      {money(h.marketValueUsd)}
+                    </p>
+                    {h.class === "land" ? (
+                      <p className="text-[13px] text-[var(--muted)]">al costo</p>
+                    ) : (
+                      <p
+                        className={`text-[13px] ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
+                      >
+                        {formatPct(h.pnlPct)}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="animate-fade-in space-y-3">
+        <div className="flex items-baseline justify-between px-0.5">
           <h2 className="ios-title">Actividad</h2>
           <Link
             href="/transactions"
@@ -116,54 +170,18 @@ export default async function DashboardPage() {
           {dash.recentTransactions.map((tx) => (
             <li key={tx.id} className="ios-row">
               <div className="min-w-0">
-                <p className="ios-headline truncate">
-                  {tx.ticker}{" "}
-                  <span className="font-normal text-[var(--muted)]">
-                    {tx.type}
-                  </span>
-                </p>
+                <p className="ios-headline truncate">{tx.ticker}</p>
                 <p className="text-[13px] text-[var(--muted)]">
-                  {formatDate(tx.date)}
+                  {formatDate(tx.date)} · {txTypeLabel(tx.type)}
                 </p>
               </div>
-              <p className="shrink-0 font-mono text-[15px] font-semibold">
+              <p className="money shrink-0 text-[15px] font-semibold">
                 {money(tx.totalUsd)}
               </p>
             </li>
           ))}
         </ul>
       </section>
-
-      {dash.holdings.length > 0 && (
-        <section className="animate-fade-in space-y-2">
-          <h2 className="ios-title px-1">Holdings</h2>
-          <ul className="ios-group">
-            {dash.holdings.map((h) => (
-              <li key={h.assetId} className="ios-row">
-                <div className="min-w-0">
-                  <p className="ios-headline">{h.ticker}</p>
-                  <p className="text-[13px] text-[var(--muted)]">
-                    {h.quantity.toLocaleString(undefined, {
-                      maximumFractionDigits: 8,
-                    })}{" "}
-                    · {h.class}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-[15px] font-semibold">
-                    {money(h.marketValueUsd)}
-                  </p>
-                  <p
-                    className={`text-[13px] ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
-                  >
-                    {formatPct(h.pnlPct)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
@@ -183,16 +201,16 @@ function Kpi({
 }) {
   return (
     <div
-      className={`px-4 py-3 ${border ? "border-l border-[var(--separator)]" : ""} ${top ? "border-t border-[var(--separator)]" : ""}`}
+      className={`px-4 py-3.5 ${border ? "border-l border-[var(--separator)]" : ""} ${top ? "border-t border-[var(--separator)]" : ""}`}
     >
-      <p className="text-[13px] text-[var(--muted)]">{label}</p>
+      <p className="text-[12px] font-medium text-[var(--muted)]">{label}</p>
       <p
-        className={`mt-0.5 font-mono text-[17px] font-semibold ${
+        className={`money mt-1 text-[17px] font-semibold leading-tight ${
           tone === "pos"
             ? "text-[var(--positive)]"
             : tone === "neg"
               ? "text-[var(--negative)]"
-              : ""
+              : "text-[var(--ink)]"
         }`}
       >
         {value}

@@ -117,17 +117,39 @@ export async function deleteTransactionAction(
 }
 
 export async function createLandPaymentAction(
-  raw: unknown,
+  formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
-  const parsed = landPaymentFormSchema.safeParse(raw);
+  const parsed = landPaymentFormSchema.safeParse({
+    date: formData.get("date"),
+    landAssetId: formData.get("landAssetId"),
+    concept: formData.get("concept"),
+    installmentNumber: formData.get("installmentNumber") || null,
+    amountLocal: formData.get("amountLocal"),
+    localCurrency: formData.get("localCurrency") || "BOB",
+    fxRate: formData.get("fxRate"),
+    paymentMethod: formData.get("paymentMethod"),
+    discountLocal: formData.get("discountLocal"),
+    notes: formData.get("notes") || undefined,
+  });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
-  const row = await createLandPayment(parsed.data);
-  revalidatePath("/dashboard");
-  revalidatePath("/land");
-  revalidatePath(`/land/${parsed.data.landAssetId}`);
-  return { ok: true, data: { id: row.id } };
+  const receiptRaw = formData.get("receipt");
+  const receipt =
+    receiptRaw instanceof File && receiptRaw.size > 0 ? receiptRaw : null;
+  try {
+    const row = await createLandPayment(parsed.data, receipt);
+    revalidatePath("/dashboard");
+    revalidatePath("/land");
+    revalidatePath("/pagos/nuevo");
+    revalidatePath(`/land/${parsed.data.landAssetId}`);
+    return { ok: true, data: { id: row.id } };
+  } catch (err) {
+    console.error("[createLandPaymentAction]", err);
+    const message =
+      err instanceof Error ? err.message : "No se pudo guardar el pago";
+    return { ok: false, error: message };
+  }
 }
 
 export async function createAssetAction(
@@ -219,4 +241,69 @@ export async function listTransactionsAction() {
     .innerJoin(assets, eq(transactions.assetId, assets.id))
     .where(and(isNull(transactions.deletedAt), isNull(assets.deletedAt)))
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
+}
+
+export async function saveApiCredentialAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
+  const provider = String(formData.get("provider") ?? "");
+  const label = String(formData.get("label") ?? "").trim();
+  const apiKey = String(formData.get("apiKey") ?? "").trim();
+  const apiSecret = String(formData.get("apiSecret") ?? "").trim();
+  const flexQueryId = String(formData.get("flexQueryId") ?? "").trim();
+  if (provider !== "binance" && provider !== "ibkr_flex") {
+    return { ok: false, error: "Provider no soportado" };
+  }
+  if (!label || !apiKey || !apiSecret) {
+    return { ok: false, error: "Completa label, key y secret/token" };
+  }
+  const { encryptSecret } = await import("@/lib/crypto/encryption");
+  const { apiCredentials } = await import("@/lib/db/schema");
+  const [row] = await db
+    .insert(apiCredentials)
+    .values({
+      provider,
+      label,
+      apiKeyCipher: encryptSecret(apiKey),
+      apiSecretCipher: encryptSecret(apiSecret),
+      additionalConfig: flexQueryId ? { flex_query_id: flexQueryId } : {},
+    })
+    .returning();
+  if (!row) return { ok: false, error: "No se pudo guardar la credencial" };
+  revalidatePath("/settings/credentials");
+  revalidatePath("/sync");
+  return { ok: true, data: { id: row.id } };
+}
+
+export async function runManualSyncAction(
+  credentialId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { runSync } = await import("@/lib/exchanges/sync-manager");
+    const id = await runSync(credentialId, "manual");
+    revalidatePath("/sync");
+    revalidatePath("/reconciliation");
+    revalidatePath("/dashboard");
+    return { ok: true, data: { id } };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Sync falló",
+    };
+  }
+}
+
+export async function resolveDriftAction(
+  logId: string,
+  action: "ignored" | "investigated",
+): Promise<ActionResult> {
+  const { reconciliationLogs } = await import("@/lib/db/schema");
+  await db
+    .update(reconciliationLogs)
+    .set({
+      resolved: true,
+      resolutionAction: action,
+      resolvedAt: new Date().toISOString(),
+    })
+    .where(eq(reconciliationLogs.id, logId));
+  revalidatePath("/reconciliation");
+  return { ok: true, data: undefined };
 }
