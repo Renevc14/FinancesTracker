@@ -106,10 +106,16 @@ export default async function DashboardPage() {
       </section>
 
       <section className="animate-fade-in space-y-3">
-        <h2 className="ios-title px-0.5">Distribución</h2>
+        <div className="space-y-0.5 px-0.5">
+          <h2 className="ios-title">Distribución</h2>
+          <p className="text-[13px] text-[var(--muted)]">
+            Incluye pagos a lotes al costo
+          </p>
+        </div>
         <div className="ios-group p-4">
           <AllocationChart
             data={dash.byClass}
+            holdings={dash.holdings}
             currency={cur}
             fx={fx}
           />

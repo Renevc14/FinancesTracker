@@ -18,6 +18,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 ### Changed
 
 - Patrimonio total incluye lo pagado en lotes al costo (el saldo pendiente sigue en comprometido)
+- La distribución del dashboard desglosa cada lote (pagos al costo), no solo la clase Terrenos
 - UI más fina: tipografía tabular, toggle de moneda, cards y distribución sin recorte
 - Formulario de nueva transacción alineado al resto de la app (card, tipos en español)
 
