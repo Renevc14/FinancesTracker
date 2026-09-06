@@ -20,7 +20,8 @@ export default async function CredentialsPage() {
         </Link>
         <h1 className="mt-2 ios-large-title">Credenciales</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          API read-only cifradas. Nunca se muestran en claro.
+          API read-only cifradas. Nunca se muestran en claro. El sync de Binance
+          importa el historial Spot de las criptos del catálogo.
         </p>
       </div>
       <div className="ios-group p-4">

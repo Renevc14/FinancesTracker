@@ -63,10 +63,11 @@ Portfolio values can be displayed in USD, EUR, or BOB using stored FX. Toggle is
 
 ## Import pipeline
 
-1. Upload / paste CSV on `/transactions/import`
-2. Parser selected by source (`binance/spot`, stubs for others)
-3. Validate rows → typed `ImportRow` contracts
-4. Dedupe against DB → insert transactions
+1. **Binance Spot (source of truth for catalog crypto):** `/sync` paginates `/api/v3/myTrades` for `{TICKER}USDT` and `{TICKER}USDC`. Buys/sells that are not `binance_api` are soft-deleted only if at least one API fill landed for that asset.
+2. Upload / paste CSV on `/transactions/import` (fallback, plus Auto-Invest / IBKR)
+3. Parser selected by source (`binance/spot`, Auto-Invest, IBKR)
+4. Validate rows → typed `ImportRow` contracts
+5. Dedupe against DB → insert transactions
 
 ## Non-goals (current phase)
 

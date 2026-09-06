@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   apiCredentials,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/db/schema";
 import { decryptSecret } from "@/lib/crypto/encryption";
 import { getPortfolioDashboard } from "@/lib/services/portfolio";
-import { BinanceClient } from "./binance";
+import { BinanceClient, binanceSpotSymbolsFor } from "./binance";
 import { IbkrFlexClient } from "./ibkr";
 import { KrakenClient } from "./kraken";
 import type { ExchangeClient, Trade } from "./types";
@@ -101,6 +101,41 @@ export async function runSync(
     }
 
     const balances = await client.getBalances();
+
+    let recordsNew = 0;
+    let recordsDuplicate = 0;
+    let recordsFetched = balances.length;
+    if (client.getTrades) {
+      const cryptoTickers = (
+        await db
+          .select({ ticker: assets.ticker })
+          .from(assets)
+          .where(and(eq(assets.class, "crypto"), isNull(assets.deletedAt)))
+      ).map((a) => a.ticker);
+      const symbols =
+        cred.provider === "binance"
+          ? binanceSpotSymbolsFor(cryptoTickers)
+          : cryptoTickers.map((t) => `${t}USDT`);
+      const trades = await client.getTrades(symbols);
+      recordsFetched = trades.length + balances.length;
+      const imported = await importTrades(cred.provider, trades);
+      recordsNew = imported.newCount;
+      recordsDuplicate = imported.dupCount;
+      let superseded = 0;
+      if (cred.provider === "binance") {
+        superseded = await supersedeNonApiSpotLedger(imported.touchedAssetIds);
+      }
+      const emptyNote =
+        cred.provider === "binance" && trades.length === 0
+          ? " Sin fills Spot: se mantienen las compras locales."
+          : "";
+      await db.insert(syncLogs).values({
+        syncJobId: job.id,
+        level: trades.length === 0 && cred.provider === "binance" ? "warn" : "info",
+        message: `Trades: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas, ${superseded} compras/ventas locales sustituidas. Pares: ${symbols.join(", ")}.${emptyNote}`,
+      });
+    }
+
     const dash = await getPortfolioDashboard();
     const threshold =
       (await db.query.userConfig.findFirst())?.reconciliationDriftThreshold ??
@@ -133,26 +168,12 @@ export async function runSync(
       });
     }
 
-    let recordsNew = 0;
-    let recordsDuplicate = 0;
-    if (client.getTrades) {
-      const trades = await client.getTrades();
-      const imported = await importTrades(cred.provider, trades);
-      recordsNew = imported.newCount;
-      recordsDuplicate = imported.dupCount;
-      await db.insert(syncLogs).values({
-        syncJobId: job.id,
-        level: "info",
-        message: `Trades: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas`,
-      });
-    }
-
     await db
       .update(syncJobs)
       .set({
         status: warnings > 0 ? "partial" : "success",
         finishedAt: new Date().toISOString(),
-        recordsFetched: balances.length,
+        recordsFetched,
         recordsNew,
         recordsDuplicate,
       })
@@ -190,12 +211,13 @@ async function importTrades(provider: string, trades: Trade[]) {
   let newCount = 0;
   let dupCount = 0;
   const source = `${provider}_api`;
+  const touchedAssetIds = new Set<string>();
   for (const trade of trades) {
     const ticker = baseFromSymbol(trade.symbol);
     const asset = await db.query.assets.findFirst({
-      where: eq(assets.ticker, ticker),
+      where: and(eq(assets.ticker, ticker), isNull(assets.deletedAt)),
     });
-    if (!asset || asset.class === "land") continue;
+    if (!asset || asset.class !== "crypto") continue;
     const qty = Number(trade.quantity);
     const price = Number(trade.price);
     const total = Number(trade.quoteQuantity) || qty * price;
@@ -217,11 +239,35 @@ async function importTrades(provider: string, trades: Trade[]) {
         importRef: trade.externalId,
       });
       newCount += 1;
+      touchedAssetIds.add(asset.id);
     } catch {
       dupCount += 1;
+      touchedAssetIds.add(asset.id);
     }
   }
-  return { newCount, dupCount };
+  return { newCount, dupCount, touchedAssetIds };
+}
+
+async function supersedeNonApiSpotLedger(assetIds: Set<string>) {
+  if (assetIds.size === 0) return 0;
+  const now = new Date().toISOString();
+  const rows = await db
+    .update(transactions)
+    .set({ deletedAt: now })
+    .where(
+      and(
+        inArray(transactions.assetId, [...assetIds]),
+        inArray(transactions.type, ["buy", "sell"]),
+        isNull(transactions.deletedAt),
+        or(
+          isNull(transactions.importedFrom),
+          ne(transactions.importedFrom, "binance_api"),
+          sql`${transactions.importRef} not like '%:%'`,
+        ),
+      ),
+    )
+    .returning({ id: transactions.id });
+  return rows.length;
 }
 
 export async function listSyncJobs(limit = 20) {

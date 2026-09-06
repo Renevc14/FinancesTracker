@@ -49,7 +49,8 @@ Smoke:
 - Manual monthly snapshots + cron diario
 - Settings: assets, FX, API credentials, banks, backup JSON
 - Sync / reconciliation (aceptar API) / FIRE editable / Modelo 720
-- Binance Spot CSV + API trades, Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
+- Binance Spot API (`myTrades` USDT/USDC) es la fuente de verdad de compras/ventas de criptos del catálogo (BTC/ETH/SOL); CSV es fallback
+- Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
 - PWA manifest
 - Docker Compose local run
 

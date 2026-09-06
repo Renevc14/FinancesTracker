@@ -17,8 +17,8 @@ export default function ImportPage() {
         </Link>
         <h1 className="ios-large-title mt-2">Importar</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Binance e IBKR con deduplicación automática. Vista previa segura —
-          nada se escribe hasta confirmar.
+          CSV es el fallback. Para BTC, ETH y SOL, el sync de Binance sustituye
+          las compras y ventas Spot de esos pares.
         </p>
       </div>
 
@@ -57,7 +57,9 @@ export default function ImportPage() {
         </p>
         <p>3. Confirmás el import — re-ejecutar el mismo CSV no duplica.</p>
         <p className="text-[13px] text-[var(--muted)]">
-          API keys: se guardan cifradas en Ajustes. CSV sigue siendo el fallback.
+          API keys: se guardan cifradas en Ajustes. Tras un sync de Binance con
+          fills Spot, las compras/ventas locales de esas criptos se archivan.
+          CSV sigue siendo el fallback si la API no trae historial.
         </p>
       </div>
     </div>

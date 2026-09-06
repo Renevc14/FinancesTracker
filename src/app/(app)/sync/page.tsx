@@ -16,7 +16,8 @@ export default async function SyncPage() {
       <div>
         <h1 className="ios-large-title">Sync</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Estado de exchanges y reconciliación
+          Binance Spot es la fuente de verdad de compras y ventas de criptos del
+          catálogo (pares USDT y USDC). El primer sync puede tardar un minuto.
         </p>
       </div>
       <ul className="ios-group">
