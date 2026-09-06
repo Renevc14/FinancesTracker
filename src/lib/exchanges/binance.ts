@@ -4,6 +4,13 @@ import type { Balance, ConnectionTest, ExchangeClient, Trade } from "./types";
 const BASE = "https://api.binance.com";
 const QUOTES = ["USDT", "USDC"] as const;
 
+/** This tracker starts here (America/La_Paz). Older Spot fills are ignored. */
+export const PORTFOLIO_START_DATE = "2026-02-01";
+
+export function portfolioStartMs(date = PORTFOLIO_START_DATE) {
+  return Date.parse(`${date}T00:00:00.000Z`);
+}
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -65,10 +72,11 @@ export class BinanceClient implements ExchangeClient {
   }
 
   async getTrades(symbols: string[]): Promise<Trade[]> {
+    const sinceMs = portfolioStartMs();
     const out: Trade[] = [];
     for (const symbol of symbols) {
       try {
-        const rows = await this.getAllTrades(symbol);
+        const rows = await this.getAllTrades(symbol, sinceMs);
         out.push(...rows);
       } catch (err) {
         console.error("[binance myTrades]", symbol, err);
@@ -77,10 +85,13 @@ export class BinanceClient implements ExchangeClient {
     return out;
   }
 
-  private async getAllTrades(symbol: string): Promise<Trade[]> {
+  private async getAllTrades(
+    symbol: string,
+    sinceMs: number,
+  ): Promise<Trade[]> {
     const out: Trade[] = [];
     // Without fromId Binance returns the *most recent* fills. Start at 1 so
-    // the ledger is the full Spot history, then walk forward by trade id.
+    // we walk the book, then drop anything before the portfolio start date.
     let fromId = "1";
     for (let page = 0; page < 50; page++) {
       const extra: Record<string, string> = {
@@ -92,9 +103,11 @@ export class BinanceClient implements ExchangeClient {
       const list = Array.isArray(rows) ? (rows as Array<Record<string, unknown>>) : [];
       if (list.length === 0) break;
       for (const t of list) {
+        const time = Number(t.time);
+        if (!Number.isFinite(time) || time < sinceMs) continue;
         out.push({
           externalId: `${symbol}:${String(t.id)}`,
-          timestamp: new Date(Number(t.time)),
+          timestamp: new Date(time),
           symbol,
           side: t.isBuyer ? "buy" : "sell",
           quantity: String(t.qty ?? "0"),

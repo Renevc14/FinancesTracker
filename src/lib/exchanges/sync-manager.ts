@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   apiCredentials,
@@ -10,7 +10,11 @@ import {
 } from "@/lib/db/schema";
 import { decryptSecret } from "@/lib/crypto/encryption";
 import { getPortfolioDashboard } from "@/lib/services/portfolio";
-import { BinanceClient, binanceSpotSymbolsFor } from "./binance";
+import {
+  BinanceClient,
+  PORTFOLIO_START_DATE,
+  binanceSpotSymbolsFor,
+} from "./binance";
 import { IbkrFlexClient } from "./ibkr";
 import { KrakenClient } from "./kraken";
 import type { ExchangeClient, Trade } from "./types";
@@ -122,17 +126,19 @@ export async function runSync(
       recordsNew = imported.newCount;
       recordsDuplicate = imported.dupCount;
       let superseded = 0;
+      let archivedOld = 0;
       if (cred.provider === "binance") {
         superseded = await supersedeNonApiSpotLedger(imported.touchedAssetIds);
+        archivedOld = await archiveBinanceApiTradesBefore(PORTFOLIO_START_DATE);
       }
       const emptyNote =
         cred.provider === "binance" && trades.length === 0
-          ? " Sin fills Spot: se mantienen las compras locales."
+          ? " Sin fills Spot desde el inicio del portafolio: se mantienen las compras locales."
           : "";
       await db.insert(syncLogs).values({
         syncJobId: job.id,
         level: trades.length === 0 && cred.provider === "binance" ? "warn" : "info",
-        message: `Trades: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas, ${superseded} compras/ventas locales sustituidas. Pares: ${symbols.join(", ")}.${emptyNote}`,
+        message: `Trades desde ${PORTFOLIO_START_DATE}: ${imported.newCount} nuevas, ${imported.dupCount} duplicadas, ${superseded} locales sustituidas, ${archivedOld} fills anteriores archivados. Pares: ${symbols.join(", ")}.${emptyNote}`,
       });
     }
 
@@ -223,6 +229,12 @@ async function importTrades(provider: string, trades: Trade[]) {
     const total = Number(trade.quoteQuantity) || qty * price;
     if (!Number.isFinite(qty) || qty === 0) continue;
     const date = trade.timestamp.toISOString().slice(0, 10);
+    if (
+      provider === "binance" &&
+      date < PORTFOLIO_START_DATE
+    ) {
+      continue;
+    }
     try {
       await db.insert(transactions).values({
         date,
@@ -264,6 +276,23 @@ async function supersedeNonApiSpotLedger(assetIds: Set<string>) {
           ne(transactions.importedFrom, "binance_api"),
           sql`${transactions.importRef} not like '%:%'`,
         ),
+      ),
+    )
+    .returning({ id: transactions.id });
+  return rows.length;
+}
+
+async function archiveBinanceApiTradesBefore(startDate: string) {
+  const now = new Date().toISOString();
+  const rows = await db
+    .update(transactions)
+    .set({ deletedAt: now })
+    .where(
+      and(
+        eq(transactions.importedFrom, "binance_api"),
+        inArray(transactions.type, ["buy", "sell"]),
+        isNull(transactions.deletedAt),
+        lt(transactions.date, startDate),
       ),
     )
     .returning({ id: transactions.id });
