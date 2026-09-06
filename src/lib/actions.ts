@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -20,6 +21,7 @@ import {
   upsertFxRate,
   upsertPriceSnapshot,
 } from "@/lib/services/snapshot";
+import { parseTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -195,6 +197,29 @@ export async function setDisplayCurrencyAction(
     .where(eq(userConfig.id, "default"));
   revalidatePath("/dashboard");
   revalidatePath("/settings");
+  return { ok: true, data: undefined };
+}
+
+export async function setThemeAction(theme: Theme): Promise<ActionResult> {
+  const next = parseTheme(theme);
+  const jar = await cookies();
+  jar.set(THEME_COOKIE, next, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+  try {
+    await db
+      .update(userConfig)
+      .set({
+        theme: next,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(userConfig.id, "default"));
+  } catch (err) {
+    console.error("[setThemeAction]", err);
+  }
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 

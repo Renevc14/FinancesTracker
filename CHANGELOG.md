@@ -16,6 +16,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Cuentas bancarias en patrimonio, backup JSON, PWA, TOTP opcional
 - Sync: trades Binance, cliente IBKR Flex XML, Kraken, aceptar API como verdad
 - Alerta de cuota de lote (14 días), FIRE editable, imprimir 720
+- Modo noche (Ajustes)
 - Project documentation set: Architecture, Agent handoff, Environment, Deployment, Contributing, Security
 
 ### Changed

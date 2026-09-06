@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { db } from "@/lib/db";
+import { parseTheme } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,12 @@ export default async function SettingsPage() {
             <dt className="text-[15px]">Umbral Modelo 720</dt>
             <dd className="money text-[15px] text-[var(--muted)]">
               €{(config?.eurUsdThreshold ?? 50000).toLocaleString("es-ES")}
+            </dd>
+          </div>
+          <div className="ios-row">
+            <dt className="text-[15px]">Modo noche</dt>
+            <dd>
+              <ThemeToggle current={parseTheme(config?.theme)} />
             </dd>
           </div>
         </dl>

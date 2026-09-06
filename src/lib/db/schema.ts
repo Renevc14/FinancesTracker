@@ -308,6 +308,7 @@ export const userConfig = sqliteTable("user_config", {
     .notNull()
     .default(0.005),
   syncSchedule: text("sync_schedule").notNull().default("0 6 * * *"),
+  theme: text("theme").$type<"light" | "dark">().notNull().default("light"),
   notificationPreferences: text("notification_preferences", { mode: "json" })
     .$type<Record<string, boolean>>()
     .default({}),
