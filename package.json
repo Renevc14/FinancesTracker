@@ -10,7 +10,10 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "db:ensure": "tsx --env-file=.env.local scripts/ensure-fase2.ts",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
