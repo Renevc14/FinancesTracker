@@ -12,13 +12,15 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local
 - Credenciales API cifradas, sync Binance, reconciliación, FIRE y umbral 720/721
-- Parsers CSV Auto-Invest e IBKR Flex
+- Precios CoinGecko/Yahoo y FX USD/EUR en vivo (BOB paralelo sigue manual)
+- Cuentas bancarias en patrimonio, backup JSON, PWA, TOTP opcional
+- Sync: trades Binance, cliente IBKR Flex XML, Kraken, aceptar API como verdad
+- Alerta de cuota de lote (14 días), FIRE editable, imprimir 720
 - Project documentation set: Architecture, Agent handoff, Environment, Deployment, Contributing, Security
 
 ### Changed
 
 - Patrimonio total incluye lo pagado en lotes al costo (el saldo pendiente sigue en comprometido)
-- La distribución del dashboard desglosa cada lote (pagos al costo), no solo la clase Terrenos
 - UI más fina: tipografía tabular, toggle de moneda, cards y distribución sin recorte
 - Formulario de nueva transacción alineado al resto de la app (card, tipos en español)
 
