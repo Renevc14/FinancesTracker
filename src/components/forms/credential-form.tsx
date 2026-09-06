@@ -39,6 +39,7 @@ export function CredentialForm() {
         >
           <option value="binance">Binance (read-only)</option>
           <option value="ibkr_flex">IBKR Flex</option>
+          <option value="kraken">Kraken (2027+)</option>
         </Select>
       </div>
       <div className="space-y-2">

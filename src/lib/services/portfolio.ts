@@ -2,6 +2,8 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   assets,
+  bankAccounts,
+  bankBalanceSnapshots,
   fxRates,
   landContracts,
   landPayments,
@@ -203,10 +205,39 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     });
   }
 
-  // Lotes al costo: lo pagado (ahorro mensual) forma parte del valor estimado.
-  // El saldo pendiente sigue en "comprometido", no infla el patrimonio.
-  const totalInvestedUsd = financialInvested + landPaidUsd;
-  const totalMarketValueUsd = financialValue + landPaidUsd;
+  const accounts = await db
+    .select()
+    .from(bankAccounts)
+    .where(eq(bankAccounts.active, true));
+  for (const account of accounts) {
+    const latest = await db.query.bankBalanceSnapshots.findFirst({
+      where: eq(bankBalanceSnapshots.accountId, account.id),
+      orderBy: [desc(bankBalanceSnapshots.date)],
+    });
+    if (!latest || latest.balanceUsd <= 0) continue;
+    holdings.push({
+      assetId: account.id,
+      ticker: account.name,
+      name: account.bank,
+      class: "cash",
+      quantity: latest.balanceLocal,
+      investedUsd: latest.balanceUsd,
+      priceUsd: null,
+      priceDate: latest.date,
+      marketValueUsd: latest.balanceUsd,
+      pnlUsd: 0,
+      pnlPct: 0,
+    });
+  }
+
+  const cashUsd = holdings
+    .filter((h) => h.class === "cash")
+    .reduce((s, h) => s + h.marketValueUsd, 0);
+
+  // Lotes al costo: lo pagado forma parte del valor estimado.
+  // Cash bancario entra al NAV; G/P sigue siendo solo financiero.
+  const totalInvestedUsd = financialInvested + landPaidUsd + cashUsd;
+  const totalMarketValueUsd = financialValue + landPaidUsd + cashUsd;
   const pnlUsd = financialValue - financialInvested;
   const pnlPct =
     financialInvested !== 0 ? (pnlUsd / financialInvested) * 100 : 0;

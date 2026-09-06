@@ -87,6 +87,7 @@ async function main() {
   for (const col of [
     "ALTER TABLE user_config ADD COLUMN reconciliation_drift_threshold real DEFAULT 0.005",
     "ALTER TABLE user_config ADD COLUMN sync_schedule text DEFAULT '0 6 * * *'",
+    "ALTER TABLE user_config ADD COLUMN theme text DEFAULT 'light'",
   ]) {
     try {
       await client.execute(col);

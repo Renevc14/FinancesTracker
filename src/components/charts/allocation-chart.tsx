@@ -1,6 +1,7 @@
 "use client";
 
 import type { ClassBreakdown } from "@/lib/services/portfolio";
+import { classLabel } from "@/lib/labels";
 import { formatMoney } from "@/lib/utils";
 
 const COLORS: Record<string, string> = {
@@ -9,14 +10,6 @@ const COLORS: Record<string, string> = {
   stable: "#34C759",
   land: "#FF9500",
   cash: "#8E8E93",
-};
-
-const LABELS: Record<string, string> = {
-  crypto: "Cripto",
-  stock: "Acciones",
-  stable: "Estables",
-  land: "Terrenos",
-  cash: "Cash",
 };
 
 export function AllocationChart({
@@ -30,13 +23,7 @@ export function AllocationChart({
 }) {
   const chartData = data
     .filter((d) => d.marketValueUsd > 0)
-    .sort((a, b) => b.marketValueUsd - a.marketValueUsd)
-    .map((d) => ({
-      name: LABELS[d.class] ?? d.class,
-      value: d.marketValueUsd,
-      class: d.class,
-      weightPct: d.weightPct,
-    }));
+    .sort((a, b) => b.marketValueUsd - a.marketValueUsd);
 
   if (chartData.length === 0) {
     return (
@@ -73,10 +60,10 @@ export function AllocationChart({
                 className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ background: COLORS[d.class] }}
               />
-              {d.name}
+              {classLabel(d.class)}
             </span>
             <span className="money shrink-0 text-[13px] text-[var(--muted)]">
-              {d.weightPct.toFixed(1)}% · {money(d.value)}
+              {d.weightPct.toFixed(1)}% · {money(d.marketValueUsd)}
             </span>
           </li>
         ))}

@@ -39,26 +39,27 @@ Smoke:
 
 ## What works today
 
-- Auth (server action login)
+- Auth (server action login) + TOTP opcional (`AUTH_TOTP_SECRET`)
 - Transactions CRUD
 - Land lots M-176-15 / M-176-16 + payment flows (receipt file + optional discount)
 - Dashboard KPIs + allocation + currency toggle
 - **Patrimonio incluye lotes al costo** (pagado); saldo pendiente en comprometido
-- Manual monthly snapshots
-- Settings: assets, FX, API credentials
-- Sync / reconciliation / FIRE / Modelo 720 screens
-- Binance Spot + Auto-Invest + IBKR Flex CSV parsers
+- Cash bancario (último saldo) en patrimonio
+- Precios CoinGecko/Yahoo y FX USD/EUR en vivo
+- Manual monthly snapshots + cron diario
+- Settings: assets, FX, API credentials, banks, backup JSON
+- Sync / reconciliation (aceptar API) / FIRE editable / Modelo 720
+- Binance Spot CSV + API trades, Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
+- PWA manifest
 - Docker Compose local run
 
 ## Do next (unless user says otherwise)
 
 Priority backlog:
 
-1. Full trade history import from Binance API (not only balances/recon)
-2. IBKR Flex XML client (CSV parser is in)
-3. Live FX / price feeds
-4. Harden auth (TOTP)
-5. Vercel + Turso production deploy
+1. Vercel + Turso production deploy
+2. Historial Binance Earn / depósitos-retiros completo
+3. Push notifications nativas (hoy hay aviso in-app de cuota)
 
 ## Conventions
 

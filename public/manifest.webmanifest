@@ -1,0 +1,10 @@
+{
+  "name": "Patrimonio",
+  "short_name": "Patrimonio",
+  "description": "Tracker patrimonial personal",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "lang": "es"
+}

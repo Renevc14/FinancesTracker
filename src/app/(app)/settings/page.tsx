@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { db } from "@/lib/db";
+import { parseTheme } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,12 @@ export default async function SettingsPage() {
               €{(config?.eurUsdThreshold ?? 50000).toLocaleString("es-ES")}
             </dd>
           </div>
+          <div className="ios-row">
+            <dt className="text-[15px]">Modo noche</dt>
+            <dd>
+              <ThemeToggle current={parseTheme(config?.theme)} />
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -58,9 +66,21 @@ export default async function SettingsPage() {
           </li>
           <li>
             <Link href="/settings/credentials" className="ios-row ios-pressable">
-              <span className="text-[15px]">API keys (Binance / IBKR)</span>
+              <span className="text-[15px]">API keys (Binance / IBKR / Kraken)</span>
               <span className="text-[15px] text-[var(--muted-2)]">›</span>
             </Link>
+          </li>
+          <li>
+            <Link href="/settings/banks" className="ios-row ios-pressable">
+              <span className="text-[15px]">Cuentas bancarias</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+          <li>
+            <a href="/api/backup" className="ios-row ios-pressable">
+              <span className="text-[15px]">Backup JSON</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </a>
           </li>
         </ul>
       </section>

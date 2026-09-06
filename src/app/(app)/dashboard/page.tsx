@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { AllocationChart } from "@/components/charts/allocation-chart";
+import { RefreshMarketsButton } from "@/components/forms/refresh-markets-button";
 import { Progress } from "@/components/ui/progress";
 import { classLabel, txTypeLabel } from "@/lib/labels";
+import { daysUntil } from "@/lib/services/market";
 import {
   convertFromUsd,
   getPortfolioDashboard,
@@ -26,8 +28,27 @@ export default async function DashboardPage() {
       ? (dash.landPaidUsd / dash.landCommittedUsd) * 100
       : 0;
 
+  const landDueDays = dash.nextLandPayment
+    ? daysUntil(dash.nextLandPayment.dueDate)
+    : null;
+
   return (
     <div className="space-y-8">
+      {dash.nextLandPayment && landDueDays != null && landDueDays <= 14 && (
+        <section className="ios-group p-4">
+          <p className="text-[15px] font-semibold text-[var(--warn)]">
+            Cuota de lote en {landDueDays < 0 ? "atraso" : `${landDueDays} días`}
+          </p>
+          <p className="mt-1 text-[13px] text-[var(--muted)]">
+            {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
+            {formatMoney(
+              dash.nextLandPayment.amountLocal,
+              dash.nextLandPayment.currency,
+            )}{" "}
+            · {dash.nextLandPayment.landTicker}
+          </p>
+        </section>
+      )}
       <section className="animate-fade-in space-y-1.5">
         <p className="text-[13px] font-medium text-[var(--muted)]">
           Patrimonio total
@@ -49,6 +70,9 @@ export default async function DashboardPage() {
             Incluye lotes al costo · {money(dash.landPaidUsd)}
           </p>
         )}
+        <div className="pt-1">
+          <RefreshMarketsButton />
+        </div>
       </section>
 
       <section className="ios-group animate-fade-in">
@@ -135,8 +159,10 @@ export default async function DashboardPage() {
                     <p className="money text-[15px] font-semibold">
                       {money(h.marketValueUsd)}
                     </p>
-                    {h.class === "land" ? (
-                      <p className="text-[13px] text-[var(--muted)]">al costo</p>
+                    {h.class === "land" || h.class === "cash" ? (
+                      <p className="text-[13px] text-[var(--muted)]">
+                        {h.class === "land" ? "al costo" : "saldo"}
+                      </p>
                     ) : (
                       <p
                         className={`text-[13px] ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
