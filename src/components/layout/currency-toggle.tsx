@@ -12,7 +12,7 @@ export function CurrencyToggle({ current }: { current: DisplayCurrency }) {
 
   return (
     <div
-      className="inline-flex rounded-full bg-[var(--surface-3)] p-0.5"
+      className="inline-flex h-7 items-center rounded-full bg-[var(--surface-3)] p-0.5"
       role="group"
       aria-label="Moneda de visualización"
     >
@@ -27,9 +27,9 @@ export function CurrencyToggle({ current }: { current: DisplayCurrency }) {
             })
           }
           className={cn(
-            "ios-hit min-h-7 min-w-[40px] rounded-full px-2.5 text-[13px] font-semibold transition-all",
+            "h-6 min-w-[38px] rounded-full px-2.5 text-[12px] font-semibold leading-none tracking-tight transition-all",
             current === c
-              ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm"
+              ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_0.5px_1px_rgba(0,0,0,0.12)]"
               : "text-[var(--muted)]",
           )}
         >

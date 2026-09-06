@@ -9,6 +9,7 @@ import {
   type LandPaymentPlan,
 } from "@/lib/db/schema";
 import type { LandPaymentFormValues } from "@/lib/validators";
+import { saveReceiptFile, assertReceiptFile } from "@/lib/receipts";
 
 export type LandLotDetail = {
   asset: typeof assets.$inferSelect;
@@ -152,7 +153,10 @@ export async function listLandLots(): Promise<LandLotDetail[]> {
       )
       .orderBy(desc(landPayments.date));
 
-    const paidLocal = payments.reduce((s, p) => s + p.amountLocal, 0);
+    const paidLocal = payments.reduce(
+      (s, p) => s + p.amountLocal + (p.discountLocal ?? 0),
+      0,
+    );
     const paidUsd = payments.reduce((s, p) => s + p.amountUsd, 0);
     const remainingLocal = Math.max(0, contract.priceLocal - paidLocal);
     const bobPerUsd = payments[0]?.fxRate ?? 12;
@@ -183,7 +187,9 @@ export async function getLandLot(assetId: string): Promise<LandLotDetail | null>
 
 export async function createLandPayment(
   values: LandPaymentFormValues,
+  receipt?: File | null,
 ): Promise<LandPayment> {
+  const discountLocal = values.discountLocal ?? 0;
   const amountUsd = values.amountLocal / values.fxRate;
   const [row] = await db
     .insert(landPayments)
@@ -197,9 +203,35 @@ export async function createLandPayment(
       fxRate: values.fxRate,
       amountUsd,
       paymentMethod: values.paymentMethod,
-      receiptNumber: values.receiptNumber || null,
+      discountLocal,
       notes: values.notes || null,
     })
     .returning();
+
+  if (!row) throw new Error("No se pudo guardar el pago");
+
+  if (receipt && receipt.size > 0) {
+    const invalid = assertReceiptFile(receipt);
+    if (invalid) throw new Error(invalid);
+    const saved = await saveReceiptFile(row.id, receipt);
+    const [updated] = await db
+      .update(landPayments)
+      .set({
+        receiptPath: saved.relativePath,
+        receiptName: saved.name,
+        receiptMime: saved.mime,
+      })
+      .where(eq(landPayments.id, row.id))
+      .returning();
+    return (
+      updated ?? {
+        ...row,
+        receiptPath: saved.relativePath,
+        receiptName: saved.name,
+        receiptMime: saved.mime,
+      }
+    );
+  }
+
   return row;
 }

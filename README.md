@@ -52,11 +52,28 @@ Tracker patrimonial **personal** (un solo usuario, no multi-tenant / no SaaS) pa
 
 Opcional para producción: cuenta [Turso](https://turso.tech) + [Vercel](https://vercel.com).
 
+**Docker (recomendado en este PC):** Docker Desktop 24+.
+
 ---
 
 ## Inicio rápido
 
-### Windows (ruta habitual del owner)
+### Docker (Windows / macOS / Linux)
+
+```bash
+cp .env.example .env.local   # o Copy-Item en PowerShell
+# Editar .env.local (AUTH_SECRET, AUTH_USERNAME, AUTH_PASSWORD)
+
+docker compose up --build
+```
+
+El contenedor aplica `db:push`, hace seed la primera vez y sirve **http://localhost:3000**.
+
+```bash
+docker compose down
+```
+
+### Windows sin Docker (ruta habitual del owner)
 
 ```powershell
 cd "F:\DOCUMENTOS IMPORTANTES\FinancesTracker"

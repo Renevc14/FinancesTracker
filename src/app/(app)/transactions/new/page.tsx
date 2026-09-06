@@ -8,19 +8,22 @@ export default async function NewTransactionPage() {
   const assets = await listAssets();
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
+    <div className="space-y-6">
       <div>
         <Link
           href="/transactions"
-          className="text-xs text-[var(--accent)] hover:underline"
+          className="text-[13px] font-medium text-[var(--accent)]"
         >
-          ← Volver
+          ← Movimientos
         </Link>
-        <h1 className="mt-2 font-display text-3xl tracking-tight">
-          Nueva transacción
-        </h1>
+        <h1 className="mt-2 ios-large-title">Nueva transacción</h1>
+        <p className="mt-1 text-[15px] text-[var(--muted)]">
+          Compra, venta o transferencia
+        </p>
       </div>
-      <TransactionForm assets={assets} />
+      <div className="ios-group p-4">
+        <TransactionForm assets={assets} />
+      </div>
     </div>
   );
 }

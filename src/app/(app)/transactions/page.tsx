@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listTransactionsAction } from "@/lib/actions";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { txTypeLabel } from "@/lib/labels";
+import { formatDate, formatMoney, formatQuantity } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -9,17 +10,17 @@ export default async function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 pt-1">
-        <div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="ios-large-title">Movimientos</h1>
           <p className="mt-1 text-[15px] text-[var(--muted)]">
             Cripto, acciones y estables
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex shrink-0 flex-col items-end gap-2 pb-0.5">
           <Link
             href="/transactions/new"
-            className="ios-pressable inline-flex h-11 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-white"
+            className="ios-pressable inline-flex h-9 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-white"
           >
             Nuevo
           </Link>
@@ -44,19 +45,20 @@ export default async function TransactionsPage() {
         {rows.map((tx) => (
           <li key={tx.id} className="ios-row">
             <div className="min-w-0">
-              <p className="ios-headline truncate">
-                {tx.ticker}{" "}
-                <span className="font-normal text-[var(--muted)]">
-                  {tx.type}
-                </span>
-              </p>
-              <p className="text-[13px] text-[var(--muted)]">
-                {formatDate(tx.date)} · {tx.platform}
+              <p className="ios-headline truncate">{tx.ticker}</p>
+              <p className="truncate text-[13px] text-[var(--muted)]">
+                {formatDate(tx.date)} · {txTypeLabel(tx.type)}
+                {tx.notes ? ` · ${tx.notes}` : ""}
               </p>
             </div>
-            <p className="shrink-0 font-mono text-[15px] font-semibold">
-              {formatMoney(tx.totalUsd, "USD")}
-            </p>
+            <div className="shrink-0 text-right">
+              <p className="money text-[15px] font-semibold">
+                {formatMoney(tx.totalUsd, "USD")}
+              </p>
+              <p className="text-[12px] text-[var(--muted-2)]">
+                {formatQuantity(tx.quantity)}
+              </p>
+            </div>
           </li>
         ))}
       </ul>

@@ -25,9 +25,9 @@ export function listImportSources(): {
     {
       id: "binance_auto_invest_csv",
       label: "Binance Auto-Invest",
-      ready: false,
+      ready: true,
     },
-    { id: "ibkr_flex_csv", label: "IBKR Flex Query (Trades)", ready: false },
+    { id: "ibkr_flex_csv", label: "IBKR Flex Query (Trades)", ready: true },
   ];
 }
 

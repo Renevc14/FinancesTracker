@@ -42,6 +42,22 @@ export function formatPct(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
+export function formatQuantity(value: number): string {
+  const abs = Math.abs(value);
+  const digits = abs >= 1 ? 4 : abs >= 0.01 ? 6 : 8;
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  });
+}
+
+export function localISODate(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function formatDate(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date + "T12:00:00") : date;
   return d.toLocaleDateString("es-BO", {

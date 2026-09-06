@@ -29,8 +29,8 @@ export default function ImportPage() {
               <p className="ios-headline">{s.label}</p>
               <p className="text-[13px] text-[var(--muted)]">
                 {s.ready
-                  ? "Parser Spot listo (preview)"
-                  : "Contrato tipado · parser en Fase 2"}
+                  ? "Parser listo (preview + dedupe)"
+                  : "Contrato tipado · parser pendiente"}
               </p>
             </div>
             <span
@@ -57,7 +57,7 @@ export default function ImportPage() {
         </p>
         <p>3. Confirmás el import — re-ejecutar el mismo CSV no duplica.</p>
         <p className="text-[13px] text-[var(--muted)]">
-          API keys de exchanges: nunca se almacenan. Solo CSV manual.
+          API keys: se guardan cifradas en Ajustes. CSV sigue siendo el fallback.
         </p>
       </div>
     </div>

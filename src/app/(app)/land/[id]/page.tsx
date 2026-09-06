@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LandTabs } from "@/components/land/land-tabs";
+import { LandPaymentForm } from "@/components/forms/land-payment-form";
+import { LandTabs, type LandTabId } from "@/components/land/land-tabs";
 import { Progress } from "@/components/ui/progress";
+import { getLatestFxRate } from "@/lib/services/fx";
 import { getLandLot } from "@/lib/services/land";
 import { formatDate, formatMoney } from "@/lib/utils";
 
@@ -19,12 +21,23 @@ const CONCEPT_LABELS: Record<string, string> = {
 
 export default async function LandDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const lot = await getLandLot(id);
   if (!lot) notFound();
+  const fx = (await getLatestFxRate("USD", "BOB")) ?? 12.3;
+  const defaultTab: LandTabId =
+    tab === "payments" ||
+    tab === "contract" ||
+    tab === "schedule" ||
+    tab === "status"
+      ? tab
+      : "status";
 
   const overdue = lot.schedule.filter((s) => s.status === "overdue");
   const upcoming = lot.schedule.filter(
@@ -44,8 +57,8 @@ export default async function LandDetailPage({
         <Stat label="Saldo" value={formatMoney(lot.remainingLocal, "BOB")} />
       </div>
       <Link
-        href={`/land/${lot.asset.id}/payments/new`}
-        className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-fg)]"
+        href={`/pagos/nuevo?lote=${lot.asset.id}`}
+        className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-[var(--accent-fg)]"
       >
         Nuevo pago
       </Link>
@@ -91,16 +104,15 @@ export default async function LandDetailPage({
   );
 
   const paymentsPanel = (
-    <section className="space-y-3">
-      <div className="flex justify-end">
-        <Link
-          href={`/land/${lot.asset.id}/payments/new`}
-          className="text-xs text-[var(--accent)] hover:underline"
-        >
-          + Nuevo pago
-        </Link>
+    <section className="space-y-5">
+      <div className="ios-group p-4">
+        <LandPaymentForm
+          lands={[lot.asset]}
+          defaultLandId={lot.asset.id}
+          defaultFx={String(fx)}
+        />
       </div>
-      <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]/70">
+      <ul className="ios-group">
         {lot.payments.length === 0 && (
           <li className="px-4 py-6 text-sm text-[var(--muted)]">
             Sin pagos registrados
@@ -120,12 +132,31 @@ export default async function LandDetailPage({
               </p>
               <p className="text-xs text-[var(--muted)]">
                 {formatDate(p.date)} · {p.paymentMethod}
-                {p.receiptNumber ? ` · ${p.receiptNumber}` : ""}
+                {p.receiptPath ? (
+                  <>
+                    {" · "}
+                    <a
+                      href={`/api/receipts/${p.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-[var(--accent)]"
+                    >
+                      {p.receiptName ?? "Comprobante"}
+                    </a>
+                  </>
+                ) : null}
               </p>
             </div>
-            <div className="text-right font-mono text-xs sm:text-sm">
-              <p>{formatMoney(p.amountLocal, p.localCurrency)}</p>
-              <p className="text-[var(--muted)]">
+            <div className="text-right">
+              <p className="money text-[15px] font-semibold">
+                {formatMoney(p.amountLocal, p.localCurrency)}
+              </p>
+              {(p.discountLocal ?? 0) > 0 && (
+                <p className="text-[12px] text-[var(--warn)]">
+                  Desc. {formatMoney(p.discountLocal, p.localCurrency)}
+                </p>
+              )}
+              <p className="text-[13px] text-[var(--muted)]">
                 {formatMoney(p.amountUsd, "USD")}
               </p>
             </div>
@@ -155,7 +186,7 @@ export default async function LandDetailPage({
               </p>
             </div>
             <div className="text-right">
-              <p className="font-mono text-xs">
+              <p className="money text-[15px] font-semibold">
                 {formatMoney(item.amountLocal, "BOB")}
               </p>
               <StatusPill status={item.status} />
@@ -176,17 +207,18 @@ export default async function LandDetailPage({
       <div>
         <Link
           href="/land"
-          className="text-xs text-[var(--accent)] hover:underline"
+          className="text-[13px] font-medium text-[var(--accent)]"
         >
           ← Terrenos
         </Link>
-        <h1 className="mt-2 font-display text-3xl tracking-tight">
+        <h1 className="mt-2 ios-large-title">
           {lot.asset.ticker}
         </h1>
-        <p className="text-sm text-[var(--muted)]">{lot.asset.name}</p>
+        <p className="text-[15px] text-[var(--muted)]">{lot.asset.name}</p>
       </div>
 
       <LandTabs
+        defaultTab={defaultTab}
         panels={{
           status: statusPanel,
           contract: contractPanel,
@@ -202,7 +234,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
       <p className="text-[11px] text-[var(--muted)]">{label}</p>
-      <p className="font-mono text-sm font-medium">{value}</p>
+      <p className="money text-sm font-semibold">{value}</p>
     </div>
   );
 }
@@ -227,7 +259,15 @@ function StatusPill({ status }: { status: string }) {
         : status === "due"
           ? "text-[var(--warn)]"
           : "text-[var(--muted)]";
+  const label =
+    status === "paid"
+      ? "Pagado"
+      : status === "overdue"
+        ? "Mora"
+        : status === "due"
+          ? "Hoy"
+          : "Próximo";
   return (
-    <p className={`text-[10px] uppercase tracking-wide ${color}`}>{status}</p>
+    <p className={`text-[11px] font-semibold ${color}`}>{label}</p>
   );
 }

@@ -11,49 +11,85 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl tracking-tight">Ajustes</h1>
-        <p className="text-sm text-[var(--muted)]">
-          Configuración personal del tracker
+        <h1 className="ios-large-title">Ajustes</h1>
+        <p className="mt-1 text-[15px] text-[var(--muted)]">
+          Configuración del tracker
         </p>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-xl">General</h2>
-        <dl className="space-y-2 text-sm">
-          <div className="flex justify-between rounded-lg bg-[var(--surface-2)] px-3 py-2">
-            <dt>Moneda display</dt>
-            <dd className="font-mono">{config?.displayCurrency ?? "USD"}</dd>
+      <section className="space-y-2">
+        <p className="ios-section-label">General</p>
+        <dl className="ios-group">
+          <div className="ios-row">
+            <dt className="text-[15px]">Moneda</dt>
+            <dd className="money text-[15px] text-[var(--muted)]">
+              {config?.displayCurrency ?? "USD"}
+            </dd>
           </div>
-          <div className="flex justify-between rounded-lg bg-[var(--surface-2)] px-3 py-2">
-            <dt>Timezone</dt>
-            <dd className="font-mono">{config?.timezone ?? "America/La_Paz"}</dd>
+          <div className="ios-row">
+            <dt className="text-[15px]">Zona horaria</dt>
+            <dd className="text-[15px] text-[var(--muted)]">
+              {config?.timezone ?? "America/La_Paz"}
+            </dd>
           </div>
-          <div className="flex justify-between rounded-lg bg-[var(--surface-2)] px-3 py-2">
-            <dt>Umbral Modelo 720</dt>
-            <dd className="font-mono">
-              €{(config?.eurUsdThreshold ?? 50000).toLocaleString()}
+          <div className="ios-row">
+            <dt className="text-[15px]">Umbral Modelo 720</dt>
+            <dd className="money text-[15px] text-[var(--muted)]">
+              €{(config?.eurUsdThreshold ?? 50000).toLocaleString("es-ES")}
             </dd>
           </div>
         </dl>
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-display text-xl">Catálogos</h2>
-        <ul className="space-y-2 text-sm">
+        <p className="ios-section-label">Catálogos</p>
+        <ul className="ios-group">
           <li>
-            <Link
-              href="/settings/assets"
-              className="block rounded-lg border border-[var(--border)] bg-[var(--surface)]/70 px-4 py-3 hover:border-[var(--accent)]/40"
-            >
-              Activos →
+            <Link href="/settings/assets" className="ios-row ios-pressable">
+              <span className="text-[15px]">Activos</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
             </Link>
           </li>
           <li>
-            <Link
-              href="/settings/fx"
-              className="block rounded-lg border border-[var(--border)] bg-[var(--surface)]/70 px-4 py-3 hover:border-[var(--accent)]/40"
-            >
-              Tipos de cambio →
+            <Link href="/settings/fx" className="ios-row ios-pressable">
+              <span className="text-[15px]">Tipos de cambio</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/settings/credentials" className="ios-row ios-pressable">
+              <span className="text-[15px]">API keys (Binance / IBKR)</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <p className="ios-section-label">Planificación</p>
+        <ul className="ios-group">
+          <li>
+            <Link href="/sync" className="ios-row ios-pressable">
+              <span className="text-[15px]">Sync y salud de APIs</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/reconciliation" className="ios-row ios-pressable">
+              <span className="text-[15px]">Reconciliación</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/fire" className="ios-row ios-pressable">
+              <span className="text-[15px]">FIRE</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/compliance" className="ios-row ios-pressable">
+              <span className="text-[15px]">Modelo 720/721</span>
+              <span className="text-[15px] text-[var(--muted-2)]">›</span>
             </Link>
           </li>
         </ul>

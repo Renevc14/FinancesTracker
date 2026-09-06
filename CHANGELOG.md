@@ -9,7 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 
 ### Added
 
+- Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
+- Docker Compose para desarrollo local
+- Credenciales API cifradas, sync Binance, reconciliación, FIRE y umbral 720/721
+- Parsers CSV Auto-Invest e IBKR Flex
 - Project documentation set: Architecture, Agent handoff, Environment, Deployment, Contributing, Security
+
+### Changed
+
+- Patrimonio total incluye lo pagado en lotes al costo (el saldo pendiente sigue en comprometido)
+- UI más fina: tipografía tabular, toggle de moneda, cards y distribución sin recorte
+- Formulario de nueva transacción alineado al resto de la app (card, tipos en español)
 
 ## [0.1.0] — 2026-09-05
 

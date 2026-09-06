@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+import { landStatusLabel } from "@/lib/labels";
 import { listLandLots } from "@/lib/services/land";
 import { formatMoney } from "@/lib/utils";
 
@@ -11,60 +11,58 @@ export default async function LandPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl tracking-tight">Terrenos</h1>
-          <p className="text-sm text-[var(--muted)]">
-            Contratos, pagos y cronograma
+          <h1 className="ios-large-title">Terrenos</h1>
+          <p className="mt-1 text-[15px] text-[var(--muted)]">
+            Berchatti · Urubó
           </p>
         </div>
+        {lots[0] && (
+          <Link
+            href={`/pagos/nuevo?lote=${lots[0].asset.id}`}
+            className="ios-pressable inline-flex h-9 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-white"
+          >
+            Pago
+          </Link>
+        )}
       </div>
 
-      <ul className="space-y-4">
+      <ul className="space-y-3">
         {lots.length === 0 && (
-          <li className="text-sm text-[var(--muted)]">
+          <li className="px-4 py-8 text-center text-[15px] text-[var(--muted)]">
             Sin lotes. Ejecuta el seed para cargar Berchatti.
           </li>
         )}
         {lots.map((lot) => (
           <li key={lot.asset.id}>
-            <Link
-              href={`/land/${lot.asset.id}`}
-              className="block space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-4 transition-colors hover:border-[var(--accent)]/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-display text-xl">{lot.asset.ticker}</p>
-                  <p className="text-xs text-[var(--muted)]">
-                    {lot.contract.location} · {lot.contract.surfaceM2} m²
-                  </p>
+            <Link href={`/land/${lot.asset.id}`} className="ios-pressable block">
+              <div className="ios-group space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="ios-headline">{lot.asset.ticker}</p>
+                    <p className="text-[13px] text-[var(--muted)]">
+                      {lot.contract.surfaceM2} m² · {lot.contract.location}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-soft)]">
+                    {landStatusLabel(lot.contract.status)}
+                  </span>
                 </div>
-                <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] uppercase tracking-wide text-[var(--ink-soft)]">
-                  {lot.contract.status}
-                </span>
-              </div>
-              <Progress value={lot.paidPct} />
-              <div className="flex justify-between text-sm">
-                <span className="text-[var(--muted)]">
-                  {lot.paidPct.toFixed(1)}% pagado
-                </span>
-                <span className="font-mono">
-                  {formatMoney(lot.paidUsd, "USD")} /{" "}
-                  {formatMoney(lot.paidLocal + lot.remainingLocal, "BOB")}
-                </span>
+                <Progress value={lot.paidPct} />
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-[var(--muted)]">
+                    {lot.paidPct.toFixed(1)}% pagado
+                  </span>
+                  <span className="money text-[var(--ink-soft)]">
+                    {formatMoney(lot.paidUsd, "USD")}
+                  </span>
+                </div>
               </div>
             </Link>
           </li>
         ))}
       </ul>
-
-      {lots[0] && (
-        <Button className="w-full">
-          <Link href={`/land/${lots[0].asset.id}/payments/new`}>
-            Registrar pago
-          </Link>
-        </Button>
-      )}
     </div>
   );
 }

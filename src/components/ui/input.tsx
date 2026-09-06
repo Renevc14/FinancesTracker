@@ -55,7 +55,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "flex h-12 w-full appearance-none rounded-[var(--radius)] border-0 bg-[var(--surface-2)] px-4 text-[17px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+        "ios-select flex h-12 w-full rounded-[var(--radius)] border-0 px-4 pr-10 text-[17px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         className,
       )}
       {...props}

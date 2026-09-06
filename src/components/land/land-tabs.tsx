@@ -25,7 +25,7 @@ export function LandTabs({
     <div className="space-y-4">
       <div
         role="tablist"
-        className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-1"
+        className="flex rounded-full bg-[var(--surface-3)] p-1"
       >
         {TABS.map((t) => (
           <button
@@ -35,10 +35,10 @@ export function LandTabs({
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors sm:text-sm",
+              "flex-1 rounded-full px-2 py-1.5 text-[13px] font-semibold tracking-tight",
               tab === t.id
-                ? "bg-[var(--ink)] text-[var(--bg)]"
-                : "text-[var(--muted)] hover:text-[var(--ink)]",
+                ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_0.5px_1px_rgba(0,0,0,0.12)]"
+                : "text-[var(--muted)]",
             )}
           >
             {t.label}

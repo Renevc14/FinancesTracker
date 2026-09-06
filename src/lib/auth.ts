@@ -19,8 +19,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const expectedUser = process.env.AUTH_USERNAME ?? "rene";
-        const expectedPass = process.env.AUTH_PASSWORD ?? "patrimonio2026";
+        const expectedUser = (process.env.AUTH_USERNAME ?? "rene").trim();
+        const expectedPass = (process.env.AUTH_PASSWORD ?? "patrimonio2026").trim();
 
         if (
           parsed.data.username === expectedUser &&
