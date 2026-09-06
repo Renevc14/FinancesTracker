@@ -12,6 +12,8 @@ export function CaptureSnapshotButton() {
   return (
     <Button
       disabled={pending}
+      size="sm"
+      className="rounded-full"
       onClick={() =>
         start(async () => {
           await captureSnapshotAction();
@@ -19,7 +21,7 @@ export function CaptureSnapshotButton() {
         })
       }
     >
-      {pending ? "Capturando…" : "Capturar snapshot"}
+      {pending ? "Capturando…" : "Capturar"}
     </Button>
   );
 }

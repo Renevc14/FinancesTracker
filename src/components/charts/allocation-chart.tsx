@@ -46,23 +46,23 @@ export function AllocationChart({
   return (
     <div className="space-y-5">
       <div
-        className="relative mx-auto size-[148px] rounded-full"
+        className="relative mx-auto size-[132px] rounded-full"
         style={{ background: `conic-gradient(${gradient})` }}
         aria-hidden
       >
-        <div className="absolute inset-[22px] rounded-full bg-[var(--surface)]" />
+        <div className="absolute inset-[28px] rounded-full bg-[var(--surface)]" />
       </div>
-      <ul className="space-y-2.5">
+      <ul className="space-y-1">
         {chartData.map((d) => (
-          <li key={d.class} className="flex items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2 text-[15px]">
+          <li key={d.class} className="flex min-h-11 items-center justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-2.5 text-[15px]">
               <span
-                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                className="inline-block size-2.5 shrink-0 rounded-full"
                 style={{ background: COLORS[d.class] }}
               />
               {classLabel(d.class)}
             </span>
-            <span className="money shrink-0 text-[13px] text-[var(--muted)]">
+            <span className="money shrink-0 text-[15px] text-[var(--muted)]">
               {d.weightPct.toFixed(1)}% · {money(d.marketValueUsd)}
             </span>
           </li>

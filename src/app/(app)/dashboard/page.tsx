@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { AllocationChart } from "@/components/charts/allocation-chart";
+import { NavHistoryChart } from "@/components/charts/nav-history-chart";
 import { RefreshMarketsButton } from "@/components/forms/refresh-markets-button";
 import { Progress } from "@/components/ui/progress";
-import { classLabel, txTypeLabel } from "@/lib/labels";
+import { HoldingsList } from "@/components/holdings/holdings-list";
+import { AssetLogo } from "@/components/ui/asset-logo";
+import { txTypeLabel } from "@/lib/labels";
 import { daysUntil } from "@/lib/services/market";
+import { getPortfolioHistory } from "@/lib/services/history";
 import {
   convertFromUsd,
   getPortfolioDashboard,
@@ -19,6 +23,10 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const dash = await getPortfolioDashboard();
+  const history = await getPortfolioHistory({
+    valueUsd: dash.totalMarketValueUsd,
+    investedUsd: dash.totalInvestedUsd,
+  });
   const fx = dash.fxToDisplay;
   const cur = dash.displayCurrency;
   const money = (usd: number) => formatMoney(convertFromUsd(usd, fx), cur);
@@ -49,22 +57,14 @@ export default async function DashboardPage() {
           </p>
         </section>
       )}
-      <section className="animate-fade-in space-y-1.5">
-        <p className="text-[13px] font-medium text-[var(--muted)]">
-          Patrimonio total
-        </p>
-        <h1 className="ios-large-title money">{money(dash.totalMarketValueUsd)}</h1>
-        <p
-          className={`text-[15px] font-semibold ${pnlPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
-        >
-          {pnlPositive ? "▲" : "▼"} {money(Math.abs(dash.pnlUsd))}{" "}
-          <span className="font-medium">({formatPct(dash.pnlPct)})</span>
-        </p>
-        {dash.lastUpdated && (
-          <p className="text-[13px] text-[var(--muted-2)]">
-            Actualizado {formatDate(dash.lastUpdated)}
-          </p>
-        )}
+
+      <section className="space-y-3">
+        <NavHistoryChart
+          points={history}
+          currentUsd={dash.totalMarketValueUsd}
+          currency={cur}
+          fx={fx}
+        />
         {dash.landPaidUsd > 0 && (
           <p className="text-[13px] text-[var(--muted)]">
             Incluye lotes al costo · {money(dash.landPaidUsd)}
@@ -75,12 +75,15 @@ export default async function DashboardPage() {
             Neto de préstamo Binance · {money(dash.debtUsd)}
           </p>
         )}
-        <div className="pt-1">
-          <RefreshMarketsButton />
-        </div>
+        {dash.lastUpdated && (
+          <p className="text-[13px] text-[var(--muted-2)]">
+            Actualizado {formatDate(dash.lastUpdated)}
+          </p>
+        )}
+        <RefreshMarketsButton />
       </section>
 
-      <section className="ios-group animate-fade-in">
+      <section className="ios-group">
         <div className="grid grid-cols-2">
           <Kpi label="Invertido" value={money(dash.totalInvestedUsd)} />
           <Kpi label="Valor" value={money(dash.totalMarketValueUsd)} border />
@@ -100,12 +103,12 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="animate-fade-in space-y-3">
+      <section className="space-y-3">
         <div className="flex items-baseline justify-between px-0.5">
           <h2 className="ios-title">Terrenos</h2>
           <Link
             href="/land"
-            className="text-[15px] font-medium text-[var(--accent)]"
+            className="ios-pressable inline-flex min-h-11 items-center text-[17px] font-normal text-[var(--accent)]"
           >
             Ver
           </Link>
@@ -135,7 +138,7 @@ export default async function DashboardPage() {
       </section>
 
       {dash.loans.length > 0 && (
-        <section className="animate-fade-in space-y-3">
+        <section className="space-y-3">
           <h2 className="ios-title px-0.5">Préstamos</h2>
           <ul className="ios-group">
             {dash.loans.map((loan) => (
@@ -155,7 +158,7 @@ export default async function DashboardPage() {
                       : ""}
                   </p>
                 </div>
-                <p className="money text-[15px] font-semibold text-[var(--negative)]">
+                <p className="money text-[17px] font-semibold text-[var(--negative)]">
                   −{money(loan.debtUsd)}
                 </p>
               </li>
@@ -164,61 +167,30 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <section className="animate-fade-in space-y-3">
+      <section className="space-y-3">
         <h2 className="ios-title px-0.5">Distribución</h2>
         <div className="ios-group p-4">
-          <AllocationChart
-            data={dash.byClass}
-            currency={cur}
-            fx={fx}
-          />
+          <AllocationChart data={dash.byClass} currency={cur} fx={fx} />
         </div>
       </section>
 
       {dash.holdings.length > 0 && (
-        <section className="animate-fade-in space-y-3">
+        <section className="space-y-3">
           <h2 className="ios-title px-0.5">Holdings</h2>
-          <ul className="ios-group">
-            {dash.holdings
-              .slice()
-              .sort((a, b) => b.marketValueUsd - a.marketValueUsd)
-              .map((h) => (
-                <li key={h.assetId} className="ios-row">
-                  <div className="min-w-0">
-                    <p className="ios-headline">{h.ticker}</p>
-                    <p className="text-[13px] text-[var(--muted)]">
-                      {formatQuantity(h.quantity)} · {classLabel(h.class)}
-                      {h.custodyLabel ? ` · ${h.custodyLabel}` : ""}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="money text-[15px] font-semibold">
-                      {money(h.marketValueUsd)}
-                    </p>
-                    {h.class === "land" || h.class === "cash" ? (
-                      <p className="text-[13px] text-[var(--muted)]">
-                        {h.class === "land" ? "al costo" : "saldo"}
-                      </p>
-                    ) : (
-                      <p
-                        className={`text-[13px] ${h.pnlPct >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}
-                      >
-                        {formatPct(h.pnlPct)}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-          </ul>
+          <HoldingsList
+            holdings={dash.holdings}
+            currency={cur}
+            fx={fx}
+          />
         </section>
       )}
 
-      <section className="animate-fade-in space-y-3">
+      <section className="space-y-3">
         <div className="flex items-baseline justify-between px-0.5">
           <h2 className="ios-title">Actividad</h2>
           <Link
             href="/transactions"
-            className="text-[15px] font-medium text-[var(--accent)]"
+            className="ios-pressable inline-flex min-h-11 items-center text-[17px] font-normal text-[var(--accent)]"
           >
             Ver todo
           </Link>
@@ -231,13 +203,16 @@ export default async function DashboardPage() {
           )}
           {dash.recentTransactions.map((tx) => (
             <li key={tx.id} className="ios-row">
-              <div className="min-w-0">
-                <p className="ios-headline truncate">{tx.ticker}</p>
-                <p className="text-[13px] text-[var(--muted)]">
-                  {formatDate(tx.date)} · {txTypeLabel(tx.type)}
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <AssetLogo ticker={tx.ticker} size={32} />
+                <div className="min-w-0">
+                  <p className="ios-headline truncate">{tx.ticker}</p>
+                  <p className="text-[13px] text-[var(--muted)]">
+                    {formatDate(tx.date)} · {txTypeLabel(tx.type)}
+                  </p>
+                </div>
               </div>
-              <p className="money shrink-0 text-[15px] font-semibold">
+              <p className="money shrink-0 text-[17px] font-semibold">
                 {money(tx.totalUsd)}
               </p>
             </li>
@@ -265,9 +240,9 @@ function Kpi({
     <div
       className={`px-4 py-3.5 ${border ? "border-l border-[var(--separator)]" : ""} ${top ? "border-t border-[var(--separator)]" : ""}`}
     >
-      <p className="text-[12px] font-medium text-[var(--muted)]">{label}</p>
+      <p className="text-[13px] font-medium text-[var(--muted)]">{label}</p>
       <p
-        className={`money mt-1 text-[17px] font-semibold leading-tight ${
+        className={`money mt-1 text-[22px] font-semibold leading-tight ${
           tone === "pos"
             ? "text-[var(--positive)]"
             : tone === "neg"

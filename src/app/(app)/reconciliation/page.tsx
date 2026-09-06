@@ -2,9 +2,14 @@ import { db } from "@/lib/db";
 import { assets, reconciliationLogs, syncJobs } from "@/lib/db/schema";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { IgnoreDriftButton } from "@/components/forms/ignore-drift-button";
-import { formatPct } from "@/lib/utils";
+import { formatPct, formatQuantity } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_LABEL: Record<string, string> = {
+  warning: "aviso",
+  critical: "crítico",
+};
 
 export default async function ReconciliationPage() {
   const [latest] = await db
@@ -36,24 +41,30 @@ export default async function ReconciliationPage() {
       <div>
         <h1 className="ios-large-title">Reconciliación</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Drift del último sync: API (Spot + Earn + Funding + colateral) vs el
-          libro
+          Último sync: API (Spot + Earn + Funding + colateral) vs el libro
         </p>
       </div>
-      <ul className="space-y-3">
+      <ul className="ios-group">
         {rows.length === 0 && (
-          <li className="ios-group px-4 py-6 text-[15px] text-[var(--muted)]">
-            Sin drifts abiertos
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
+            Sin drifts abiertos en el último sync
           </li>
         )}
         {rows.map(({ log, ticker }) => (
-          <li key={log.id} className="ios-group space-y-2 p-4">
-            <p className="ios-headline">{ticker}</p>
+          <li
+            key={log.id}
+            className="space-y-3 p-4 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--separator)]"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="ios-headline">{ticker}</p>
+              <p className="text-[13px] font-semibold text-[var(--warn)]">
+                {formatPct(log.driftPct * 100)} ·{" "}
+                {STATUS_LABEL[log.status] ?? log.status}
+              </p>
+            </div>
             <p className="text-[15px] text-[var(--ink-soft)]">
-              API {log.apiBalance} · DB {log.dbBalance}
-            </p>
-            <p className="text-[13px] text-[var(--warn)]">
-              Drift {formatPct(log.driftPct * 100)} · {log.status}
+              API {formatQuantity(log.apiBalance)} · Libro{" "}
+              {formatQuantity(log.dbBalance)}
             </p>
             <IgnoreDriftButton logId={log.id} />
           </li>

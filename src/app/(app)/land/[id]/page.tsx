@@ -46,19 +46,34 @@ export default async function LandDetailPage({
 
   const statusPanel = (
     <section className="space-y-3">
-      <Progress value={lot.paidPct} />
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <Stat
-          label="Precio contrato"
-          value={formatMoney(lot.contract.priceLocal, "BOB")}
-        />
-        <Stat label="Pagado" value={formatMoney(lot.paidLocal, "BOB")} />
-        <Stat label="Pagado USD" value={formatMoney(lot.paidUsd, "USD")} />
-        <Stat label="Saldo" value={formatMoney(lot.remainingLocal, "BOB")} />
+      <div className="ios-group">
+        <div className="grid grid-cols-2">
+          <Stat
+            label="Precio contrato"
+            value={formatMoney(lot.contract.priceLocal, "BOB")}
+          />
+          <Stat
+            label="Pagado"
+            value={formatMoney(lot.paidLocal, "BOB")}
+            border
+          />
+          <Stat
+            label="Pagado USD"
+            value={formatMoney(lot.paidUsd, "USD")}
+            top
+          />
+          <Stat
+            label="Saldo"
+            value={formatMoney(lot.remainingLocal, "BOB")}
+            border
+            top
+          />
+        </div>
       </div>
+      <Progress value={lot.paidPct} />
       <Link
         href={`/pagos/nuevo?lote=${lot.asset.id}`}
-        className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-[var(--accent-fg)]"
+        className="ios-pressable inline-flex h-12 w-full items-center justify-center rounded-[var(--radius)] bg-[var(--accent)] text-[17px] font-semibold text-[var(--accent-fg)]"
       >
         Nuevo pago
       </Link>
@@ -121,16 +136,16 @@ export default async function LandDetailPage({
         {lot.payments.map((p) => (
           <li
             key={p.id}
-            className="flex justify-between gap-3 px-4 py-3 text-sm"
+            className="ios-row"
           >
             <div>
-              <p className="font-medium">
+              <p className="ios-headline">
                 {CONCEPT_LABELS[p.concept] ?? p.concept}
                 {p.installmentNumber != null
                   ? ` #${p.installmentNumber}`
                   : ""}
               </p>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-[13px] text-[var(--muted)]">
                 {formatDate(p.date)} · {p.paymentMethod}
                 {p.receiptPath ? (
                   <>
@@ -148,7 +163,7 @@ export default async function LandDetailPage({
               </p>
             </div>
             <div className="text-right">
-              <p className="money text-[15px] font-semibold">
+              <p className="money text-[17px] font-semibold">
                 {formatMoney(p.amountLocal, p.localCurrency)}
               </p>
               {(p.discountLocal ?? 0) > 0 && (
@@ -173,20 +188,20 @@ export default async function LandDetailPage({
           {overdue.length} pago(s) en mora
         </p>
       )}
-      <ul className="space-y-2">
+      <ul className="ios-group">
         {[...overdue, ...upcoming.slice(0, 8)].map((item) => (
           <li
             key={`${item.concept}-${item.installmentNumber ?? item.dueDate}`}
-            className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)]/60 px-3 py-2 text-sm"
+            className="ios-row"
           >
             <div>
-              <p className="font-medium">{item.label}</p>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="ios-headline">{item.label}</p>
+              <p className="text-[13px] text-[var(--muted)]">
                 {formatDate(item.dueDate)}
               </p>
             </div>
             <div className="text-right">
-              <p className="money text-[15px] font-semibold">
+              <p className="money text-[17px] font-semibold">
                 {formatMoney(item.amountLocal, "BOB")}
               </p>
               <StatusPill status={item.status} />
@@ -194,7 +209,7 @@ export default async function LandDetailPage({
           </li>
         ))}
         {overdue.length === 0 && upcoming.length === 0 && (
-          <li className="text-sm text-[var(--muted)]">
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
             Sin cuotas pendientes en el cronograma
           </li>
         )}
@@ -205,16 +220,11 @@ export default async function LandDetailPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/land"
-          className="text-[13px] font-medium text-[var(--accent)]"
-        >
-          ← Terrenos
+        <Link href="/land" className="ios-back">
+          ‹ Terrenos
         </Link>
-        <h1 className="mt-2 ios-large-title">
-          {lot.asset.ticker}
-        </h1>
-        <p className="text-[15px] text-[var(--muted)]">{lot.asset.name}</p>
+        <h1 className="ios-large-title">{lot.asset.ticker}</h1>
+        <p className="mt-1 text-[15px] text-[var(--muted)]">{lot.asset.name}</p>
       </div>
 
       <LandTabs
@@ -230,11 +240,23 @@ export default async function LandDetailPage({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  border,
+  top,
+}: {
+  label: string;
+  value: string;
+  border?: boolean;
+  top?: boolean;
+}) {
   return (
-    <div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-      <p className="text-[11px] text-[var(--muted)]">{label}</p>
-      <p className="money text-sm font-semibold">{value}</p>
+    <div
+      className={`px-4 py-3.5 ${border ? "border-l border-[var(--separator)]" : ""} ${top ? "border-t border-[var(--separator)]" : ""}`}
+    >
+      <p className="text-[13px] font-medium text-[var(--muted)]">{label}</p>
+      <p className="money mt-1 text-[17px] font-semibold">{value}</p>
     </div>
   );
 }

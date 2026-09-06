@@ -123,6 +123,14 @@ async function main() {
       /* already exists */
     }
   }
+  await client.execute(`
+    UPDATE transactions
+    SET deleted_at = datetime('now')
+    WHERE deleted_at IS NULL
+      AND imported_from = 'excel_v2'
+      AND notes = 'Reserva / fondo de aterrizaje'
+      AND quantity = 600
+  `);
   console.log("Fase 2 tables ensured.");
 }
 

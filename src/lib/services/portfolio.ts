@@ -15,6 +15,14 @@ import {
   type DisplayCurrency,
 } from "@/lib/db/schema";
 
+export type WalletSlice = {
+  key: "spot" | "earn" | "funding" | "collateral";
+  label: string;
+  quantity: number;
+  kind: "balance" | "pledge";
+  hint?: string;
+};
+
 export type HoldingRow = {
   assetId: string;
   ticker: string;
@@ -28,6 +36,8 @@ export type HoldingRow = {
   pnlUsd: number;
   pnlPct: number;
   custodyLabel: string | null;
+  wallets: WalletSlice[];
+  displayQuantity: number;
 };
 
 export type ClassBreakdown = {
@@ -156,6 +166,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     const pnlUsd = marketValueUsd - investedUsd;
     const pnlPct = investedUsd !== 0 ? (pnlUsd / investedUsd) * 100 : 0;
 
+    const wallet = walletByAsset.get(asset.ticker.toUpperCase());
     holdings.push({
       assetId: asset.id,
       ticker: asset.ticker,
@@ -168,7 +179,9 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       marketValueUsd,
       pnlUsd,
       pnlPct,
-      custodyLabel: custodyLabelFor(walletByAsset.get(asset.ticker.toUpperCase())),
+      custodyLabel: custodyLabelFor(wallet),
+      wallets: walletSlices(wallet),
+      displayQuantity: displayQty(wallet, quantity),
     });
   }
 
@@ -220,6 +233,8 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       pnlUsd: 0,
       pnlPct: 0,
       custodyLabel: null,
+      wallets: [],
+      displayQuantity: contract?.surfaceM2 ?? 1,
     });
   }
 
@@ -246,6 +261,8 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
       pnlUsd: 0,
       pnlPct: 0,
       custodyLabel: null,
+      wallets: [],
+      displayQuantity: latest.balanceLocal,
     });
   }
 
@@ -381,6 +398,70 @@ export function convertFromUsd(amountUsd: number, fxToDisplay: number): number {
   return amountUsd * fxToDisplay;
 }
 
+const WALLET_LABEL: Record<WalletSlice["key"], string> = {
+  spot: "Spot",
+  earn: "Earn",
+  funding: "Funding",
+  collateral: "Colateral",
+};
+
+function walletSlices(
+  wallet:
+    | {
+        spot: number;
+        earn: number;
+        funding: number;
+        collateral: number;
+      }
+    | undefined,
+): WalletSlice[] {
+  if (!wallet) return [];
+  // Binance's asset row keeps pledged Flexible Earn under Earn, not a
+  // separate wallet. The loan card still shows the pledged amount.
+  const earnQty = wallet.earn + wallet.collateral;
+  const out: WalletSlice[] = [];
+  if (earnQty > 1e-12) {
+    out.push({
+      key: "earn",
+      label: WALLET_LABEL.earn,
+      quantity: earnQty,
+      kind: wallet.collateral > 1e-12 ? "pledge" : "balance",
+      hint:
+        wallet.collateral > 1e-12
+          ? "Incluye garantía del préstamo"
+          : undefined,
+    });
+  }
+  for (const key of ["spot", "funding"] as const) {
+    if (wallet[key] > 1e-12) {
+      out.push({
+        key,
+        label: WALLET_LABEL[key],
+        quantity: wallet[key],
+        kind: "balance",
+      });
+    }
+  }
+  return out;
+}
+
+function displayQty(
+  wallet:
+    | {
+        spot: number;
+        earn: number;
+        funding: number;
+        collateral: number;
+      }
+    | undefined,
+  ledgerQty: number,
+): number {
+  if (!wallet) return ledgerQty;
+  const api =
+    wallet.spot + wallet.earn + wallet.funding + wallet.collateral;
+  return api > 1e-12 ? api : ledgerQty;
+}
+
 function custodyLabelFor(
   wallet:
     | {
@@ -393,10 +474,9 @@ function custodyLabelFor(
 ): string | null {
   if (!wallet) return null;
   const parts: string[] = [];
-  if (wallet.earn > 0) parts.push("Earn");
-  if (wallet.collateral > 0) parts.push("colateral");
-  if (wallet.funding > 0) parts.push("Funding");
-  if (wallet.spot > 0 && parts.length > 0) parts.unshift("Spot");
+  if (wallet.earn + wallet.collateral > 1e-12) parts.push("Earn");
+  if (wallet.funding > 1e-12) parts.push("Funding");
+  if (wallet.spot > 1e-12) parts.push("Spot");
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 

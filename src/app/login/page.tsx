@@ -48,7 +48,7 @@ function LoginForm() {
           name="totp"
           inputMode="numeric"
           autoComplete="one-time-code"
-          placeholder="Solo si TOTP está activo"
+          placeholder="Opcional"
         />
       </div>
       {state.error && (

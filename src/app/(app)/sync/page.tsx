@@ -5,6 +5,13 @@ import { desc } from "drizzle-orm";
 import { RunSyncButton } from "@/components/forms/run-sync-button";
 import { formatDate } from "@/lib/utils";
 
+const JOB_STATUS: Record<string, string> = {
+  success: "Completado",
+  partial: "Parcial",
+  error: "Error",
+  running: "En curso",
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function SyncPage() {
@@ -56,7 +63,9 @@ export default async function SyncPage() {
           {jobs.map((j) => (
             <li key={j.id} className="ios-row">
               <div>
-                <p className="ios-headline capitalize">{j.status}</p>
+                <p className="ios-headline">
+                  {JOB_STATUS[j.status] ?? j.status}
+                </p>
                 <p className="text-[13px] text-[var(--muted)]">
                   {formatDate(j.startedAt.slice(0, 10))} · {j.triggeredBy}
                 </p>

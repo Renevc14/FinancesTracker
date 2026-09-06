@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Chevron } from "@/components/ui/chevron";
 import { db } from "@/lib/db";
 import { parseTheme } from "@/lib/theme";
 
@@ -23,25 +23,25 @@ export default async function SettingsPage() {
         <p className="ios-section-label">General</p>
         <dl className="ios-group">
           <div className="ios-row">
-            <dt className="text-[15px]">Moneda</dt>
-            <dd className="money text-[15px] text-[var(--muted)]">
+            <dt className="text-[17px]">Moneda</dt>
+            <dd className="money text-[17px] text-[var(--muted)]">
               {config?.displayCurrency ?? "USD"}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[15px]">Zona horaria</dt>
-            <dd className="text-[15px] text-[var(--muted)]">
+            <dt className="text-[17px]">Zona horaria</dt>
+            <dd className="text-[17px] text-[var(--muted)]">
               {config?.timezone ?? "America/La_Paz"}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[15px]">Umbral Modelo 720</dt>
-            <dd className="money text-[15px] text-[var(--muted)]">
+            <dt className="text-[17px]">Umbral Modelo 720</dt>
+            <dd className="money text-[17px] text-[var(--muted)]">
               €{(config?.eurUsdThreshold ?? 50000).toLocaleString("es-ES")}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[15px]">Modo noche</dt>
+            <dt className="text-[17px]">Modo noche</dt>
             <dd>
               <ThemeToggle current={parseTheme(config?.theme)} />
             </dd>
@@ -52,34 +52,17 @@ export default async function SettingsPage() {
       <section className="space-y-2">
         <p className="ios-section-label">Catálogos</p>
         <ul className="ios-group">
-          <li>
-            <Link href="/settings/assets" className="ios-row ios-pressable">
-              <span className="text-[15px]">Activos</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings/fx" className="ios-row ios-pressable">
-              <span className="text-[15px]">Tipos de cambio</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings/credentials" className="ios-row ios-pressable">
-              <span className="text-[15px]">API keys (Binance / IBKR / Kraken)</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings/banks" className="ios-row ios-pressable">
-              <span className="text-[15px]">Cuentas bancarias</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
+          <SettingsLink href="/settings/assets" label="Activos" />
+          <SettingsLink href="/settings/fx" label="Tipos de cambio" />
+          <SettingsLink
+            href="/settings/credentials"
+            label="API keys"
+          />
+          <SettingsLink href="/settings/banks" label="Cuentas bancarias" />
           <li>
             <a href="/api/backup" className="ios-row ios-pressable">
-              <span className="text-[15px]">Backup JSON</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
+              <span className="text-[17px]">Backup JSON</span>
+              <Chevron />
             </a>
           </li>
         </ul>
@@ -88,43 +71,44 @@ export default async function SettingsPage() {
       <section className="space-y-2">
         <p className="ios-section-label">Planificación</p>
         <ul className="ios-group">
-          <li>
-            <Link href="/sync" className="ios-row ios-pressable">
-              <span className="text-[15px]">Sync y salud de APIs</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/reconciliation" className="ios-row ios-pressable">
-              <span className="text-[15px]">Reconciliación</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/fire" className="ios-row ios-pressable">
-              <span className="text-[15px]">FIRE</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/compliance" className="ios-row ios-pressable">
-              <span className="text-[15px]">Modelo 720/721</span>
-              <span className="text-[15px] text-[var(--muted-2)]">›</span>
-            </Link>
-          </li>
+          <SettingsLink href="/sync" label="Sync y salud de APIs" />
+          <SettingsLink href="/reconciliation" label="Reconciliación" />
+          <SettingsLink href="/fire" label="FIRE" />
+          <SettingsLink href="/compliance" label="Modelo 720/721" />
         </ul>
       </section>
 
-      <form
-        action={async () => {
-          "use server";
-          await signOut({ redirectTo: "/login" });
-        }}
-      >
-        <Button type="submit" variant="outline" className="w-full">
-          Cerrar sesión
-        </Button>
-      </form>
+      <section className="space-y-2">
+        <p className="ios-section-label">Sesión</p>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}
+        >
+          <ul className="ios-group">
+            <li>
+              <button
+                type="submit"
+                className="ios-row ios-pressable w-full text-left text-[17px] text-[var(--danger)]"
+              >
+                Cerrar sesión
+              </button>
+            </li>
+          </ul>
+        </form>
+      </section>
     </div>
+  );
+}
+
+function SettingsLink({ href, label }: { href: string; label: string }) {
+  return (
+    <li>
+      <Link href={href} className="ios-row ios-pressable">
+        <span className="text-[17px]">{label}</span>
+        <Chevron />
+      </Link>
+    </li>
   );
 }
