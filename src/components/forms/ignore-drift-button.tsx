@@ -22,7 +22,7 @@ export function IgnoreDriftButton({ logId }: { logId: string }) {
           })
         }
       >
-        {pending ? "…" : "Ignorar"}
+        {pending ? "…" : "Ignore"}
       </Button>
       <Button
         type="button"
@@ -35,7 +35,7 @@ export function IgnoreDriftButton({ logId }: { logId: string }) {
           })
         }
       >
-        {pending ? "…" : "Aceptar API"}
+        {pending ? "…" : "Accept API"}
       </Button>
     </div>
   );

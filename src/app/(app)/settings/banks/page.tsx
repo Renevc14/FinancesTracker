@@ -11,19 +11,14 @@ export default async function BanksPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/settings" className="text-xs text-[var(--accent)] hover:underline">
-          ← Ajustes
+        <Link href="/settings" className="ios-back">
+          ‹ Settings
         </Link>
-        <h1 className="mt-2 ios-large-title">Cuentas bancarias</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          El último saldo entra como cash en el patrimonio
-        </p>
+        <h1 className="mt-2 ios-large-title">Banks</h1>
       </div>
       <ul className="ios-group">
         {rows.length === 0 && (
-          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
-            Sin cuentas todavía
-          </li>
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">None yet</li>
         )}
         {rows.map(({ account, latest }) => (
           <li key={account.id} className="space-y-3 p-4">
@@ -35,9 +30,7 @@ export default async function BanksPage() {
                 </p>
               </div>
               <p className="money text-[15px] font-semibold">
-                {latest
-                  ? formatMoney(latest.balanceUsd, "USD")
-                  : "—"}
+                {latest ? formatMoney(latest.balanceUsd, "USD") : "—"}
               </p>
             </div>
             <BankBalanceForm accountId={account.id} />
@@ -45,7 +38,7 @@ export default async function BanksPage() {
         ))}
       </ul>
       <section className="ios-group space-y-3 p-4">
-        <h2 className="ios-title">Nueva cuenta</h2>
+        <h2 className="ios-title">New account</h2>
         <BankAccountForm />
       </section>
     </div>

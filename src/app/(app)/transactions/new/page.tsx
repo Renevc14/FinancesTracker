@@ -14,12 +14,9 @@ export default async function NewTransactionPage() {
           href="/transactions"
           className="text-[13px] font-medium text-[var(--accent)]"
         >
-          ← Movimientos
+          ← Activity
         </Link>
-        <h1 className="mt-2 ios-large-title">Nueva transacción</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Compra, venta o transferencia
-        </p>
+        <h1 className="mt-2 ios-large-title">New transaction</h1>
       </div>
       <div className="ios-group p-4">
         <TransactionForm assets={assets} />

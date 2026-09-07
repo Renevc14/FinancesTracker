@@ -7,8 +7,8 @@ import { formatPct, formatQuantity } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
-  warning: "aviso",
-  critical: "crítico",
+  warning: "warn",
+  critical: "critical",
 };
 
 export default async function ReconciliationPage() {
@@ -39,15 +39,12 @@ export default async function ReconciliationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="ios-large-title">Reconciliación</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Último sync: API (Spot + Earn + Funding + colateral) vs el libro
-        </p>
+        <h1 className="ios-large-title">Reconciliation</h1>
       </div>
       <ul className="ios-group">
         {rows.length === 0 && (
           <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
-            Sin drifts abiertos en el último sync
+            No open drifts
           </li>
         )}
         {rows.map(({ log, ticker }) => (
@@ -63,7 +60,7 @@ export default async function ReconciliationPage() {
               </p>
             </div>
             <p className="text-[15px] text-[var(--ink-soft)]">
-              API {formatQuantity(log.apiBalance)} · Libro{" "}
+              API {formatQuantity(log.apiBalance)} · Book{" "}
               {formatQuantity(log.dbBalance)}
             </p>
             <IgnoreDriftButton logId={log.id} />

@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import {
@@ -14,8 +14,14 @@ import {
   assetFormSchema,
   landPaymentFormSchema,
   transactionFormSchema,
+  personalLoanFormSchema,
 } from "@/lib/validators";
 import { createLandPayment } from "@/lib/services/land";
+import {
+  createPersonalLoan,
+  deletePersonalLoan,
+  setPersonalLoanStatus,
+} from "@/lib/services/personal-loans";
 import {
   captureMonthlySnapshot,
   upsertFxRate,
@@ -35,31 +41,31 @@ export async function createTransactionAction(
     if (!parsed.success) {
       return {
         ok: false,
-        error: parsed.error.issues[0]?.message ?? "Datos inválidos",
+        error: parsed.error.issues[0]?.message ?? "Invalid data",
       };
     }
     const v = parsed.data;
 
     if (v.date > new Date().toISOString().slice(0, 10)) {
-      return { ok: false, error: "La fecha no puede ser futura" };
+      return { ok: false, error: "Date cannot be in the future" };
     }
     if (v.fxRate <= 0 || !Number.isFinite(v.fxRate)) {
-      return { ok: false, error: "FX inválido" };
+      return { ok: false, error: "Invalid FX" };
     }
     if (v.quantity <= 0 || v.unitPrice < 0) {
-      return { ok: false, error: "Cantidad/precio inválidos" };
+      return { ok: false, error: "Invalid qty/price" };
     }
 
     const asset = await db.query.assets.findFirst({
       where: and(eq(assets.id, v.assetId), isNull(assets.deletedAt)),
     });
     if (!asset) {
-      return { ok: false, error: "Activo no encontrado" };
+      return { ok: false, error: "Asset not found" };
     }
     if (asset.class === "land") {
       return {
         ok: false,
-        error: "Usa el módulo de terrenos para pagos de land",
+        error: "Use Lots for land payments",
       };
     }
 
@@ -68,7 +74,7 @@ export async function createTransactionAction(
         ? v.quantity * v.unitPrice
         : (v.quantity * v.unitPrice) / v.fxRate;
     if (!Number.isFinite(totalUsd)) {
-      return { ok: false, error: "Total USD no calculable" };
+      return { ok: false, error: "Cannot compute USD total" };
     }
 
     const [row] = await db
@@ -94,7 +100,7 @@ export async function createTransactionAction(
     return { ok: true, data: { id: row.id } };
   } catch (err) {
     console.error("[createTransactionAction]", err);
-    return { ok: false, error: "No se pudo guardar la transacción" };
+    return { ok: false, error: "Could not save transaction" };
   }
 }
 
@@ -102,7 +108,7 @@ export async function deleteTransactionAction(
   id: string,
 ): Promise<ActionResult> {
   if (!id || typeof id !== "string") {
-    return { ok: false, error: "ID inválido" };
+    return { ok: false, error: "Invalid ID" };
   }
   try {
     await db
@@ -114,7 +120,7 @@ export async function deleteTransactionAction(
     return { ok: true, data: undefined };
   } catch (err) {
     console.error("[deleteTransactionAction]", err);
-    return { ok: false, error: "No se pudo eliminar" };
+    return { ok: false, error: "Could not delete" };
   }
 }
 
@@ -134,7 +140,7 @@ export async function createLandPaymentAction(
     notes: formData.get("notes") || undefined,
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
   }
   const receiptRaw = formData.get("receipt");
   const receipt =
@@ -149,7 +155,7 @@ export async function createLandPaymentAction(
   } catch (err) {
     console.error("[createLandPaymentAction]", err);
     const message =
-      err instanceof Error ? err.message : "No se pudo guardar el pago";
+      err instanceof Error ? err.message : "Could not save payment";
     return { ok: false, error: message };
   }
 }
@@ -159,7 +165,7 @@ export async function createAssetAction(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = assetFormSchema.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
   }
   const [row] = await db
     .insert(assets)
@@ -246,7 +252,7 @@ export async function savePriceAction(raw: {
   return { ok: true, data: undefined };
 }
 
-export async function listTransactionsAction() {
+export async function listTransactionsAction(opts?: { showEarn?: boolean }) {
   return db
     .select({
       id: transactions.id,
@@ -264,7 +270,13 @@ export async function listTransactionsAction() {
     })
     .from(transactions)
     .innerJoin(assets, eq(transactions.assetId, assets.id))
-    .where(and(isNull(transactions.deletedAt), isNull(assets.deletedAt)))
+    .where(
+      and(
+        isNull(transactions.deletedAt),
+        isNull(assets.deletedAt),
+        opts?.showEarn ? undefined : ne(transactions.type, "reward"),
+      ),
+    )
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
 }
 
@@ -275,10 +287,10 @@ export async function saveApiCredentialAction(formData: FormData): Promise<Actio
   const apiSecret = String(formData.get("apiSecret") ?? "").trim();
   const flexQueryId = String(formData.get("flexQueryId") ?? "").trim();
   if (provider !== "binance" && provider !== "ibkr_flex" && provider !== "kraken") {
-    return { ok: false, error: "Provider no soportado" };
+    return { ok: false, error: "Unsupported provider" };
   }
   if (!label || !apiKey || !apiSecret) {
-    return { ok: false, error: "Completa label, key y secret/token" };
+    return { ok: false, error: "Label, key and secret required" };
   }
   const { encryptSecret } = await import("@/lib/crypto/encryption");
   const { apiCredentials } = await import("@/lib/db/schema");
@@ -292,7 +304,7 @@ export async function saveApiCredentialAction(formData: FormData): Promise<Actio
       additionalConfig: flexQueryId ? { flex_query_id: flexQueryId } : {},
     })
     .returning();
-  if (!row) return { ok: false, error: "No se pudo guardar la credencial" };
+  if (!row) return { ok: false, error: "Could not save credential" };
   revalidatePath("/settings/credentials");
   revalidatePath("/sync");
   return { ok: true, data: { id: row.id } };
@@ -312,7 +324,7 @@ export async function runManualSyncAction(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Sync falló",
+      error: err instanceof Error ? err.message : "Sync failed",
     };
   }
 }
@@ -344,7 +356,7 @@ export async function resolveDriftAction(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "No se pudo resolver",
+      error: err instanceof Error ? err.message : "Could not resolve",
     };
   }
 }
@@ -359,13 +371,13 @@ export async function refreshMarketsAction(): Promise<
     revalidatePath("/settings/fx");
     revalidatePath("/settings/assets");
     if (result.errors.length && result.prices === 0 && result.fx === 0) {
-      return { ok: false, error: result.errors[0] ?? "Refresh falló" };
+      return { ok: false, error: result.errors[0] ?? "Refresh failed" };
     }
     return { ok: true, data: { prices: result.prices, fx: result.fx } };
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Refresh falló",
+      error: err instanceof Error ? err.message : "Refresh failed",
     };
   }
 }
@@ -385,7 +397,7 @@ export async function createBankAccountAction(formData: FormData): Promise<Actio
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "No se pudo crear la cuenta",
+      error: err instanceof Error ? err.message : "Could not create account",
     };
   }
 }
@@ -394,7 +406,7 @@ export async function addBankBalanceAction(formData: FormData): Promise<ActionRe
   const accountId = String(formData.get("accountId") ?? "");
   const balanceLocal = Number(formData.get("balanceLocal"));
   if (!accountId || !Number.isFinite(balanceLocal)) {
-    return { ok: false, error: "Saldo inválido" };
+    return { ok: false, error: "Invalid balance" };
   }
   try {
     const { addBankBalance } = await import("@/lib/services/banks");
@@ -405,7 +417,7 @@ export async function addBankBalanceAction(formData: FormData): Promise<ActionRe
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "No se pudo guardar el saldo",
+      error: err instanceof Error ? err.message : "Could not save balance",
     };
   }
 }
@@ -416,7 +428,7 @@ export async function saveFireConfigAction(formData: FormData): Promise<ActionRe
   const ret = Number(formData.get("fireExpectedReturn"));
   const date = String(formData.get("fireTargetDate") ?? "").trim() || null;
   if (!Number.isFinite(target) || target <= 0) {
-    return { ok: false, error: "Meta inválida" };
+    return { ok: false, error: "Invalid target" };
   }
   await db
     .update(userConfig)
@@ -429,5 +441,60 @@ export async function saveFireConfigAction(formData: FormData): Promise<ActionRe
     })
     .where(eq(userConfig.id, "default"));
   revalidatePath("/fire");
+  revalidatePath("/dashboard");
+  return { ok: true, data: undefined };
+}
+
+export async function saveMonthlySalaryAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const amount = Number(formData.get("monthlySalaryUsd"));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Invalid salary" };
+  }
+  await db
+    .update(userConfig)
+    .set({
+      monthlySalaryUsd: amount,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(userConfig.id, "default"));
+  revalidatePath("/dashboard");
+  revalidatePath("/settings");
+  revalidatePath("/settings/income");
+  return { ok: true, data: undefined };
+}
+
+export async function createPersonalLoanAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = personalLoanFormSchema.safeParse({
+    counterparty: formData.get("counterparty"),
+    amount: formData.get("amount"),
+    currency: formData.get("currency"),
+    date: formData.get("date"),
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message };
+  await createPersonalLoan(parsed.data);
+  revalidatePath("/loans");
+  return { ok: true, data: undefined };
+}
+
+export async function markPersonalLoanRepaidAction(id: string): Promise<ActionResult> {
+  await setPersonalLoanStatus(id, "repaid");
+  revalidatePath("/loans");
+  return { ok: true, data: undefined };
+}
+
+export async function reopenPersonalLoanAction(id: string): Promise<ActionResult> {
+  await setPersonalLoanStatus(id, "open");
+  revalidatePath("/loans");
+  return { ok: true, data: undefined };
+}
+
+export async function deletePersonalLoanAction(id: string): Promise<ActionResult> {
+  await deletePersonalLoan(id);
+  revalidatePath("/loans");
   return { ok: true, data: undefined };
 }

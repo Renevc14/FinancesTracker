@@ -16,7 +16,10 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Cuentas bancarias en patrimonio, backup JSON, PWA, TOTP opcional
 - Sync: trades Binance, cliente IBKR Flex XML, Kraken, aceptar API como verdad
 - Alerta de cuota de lote (14 días), FIRE editable, imprimir 720
-- Modo noche (Ajustes)
+- Interés diario de Binance Simple Earn como movimientos Earn
+- Ratio ahorro vs salario en Inicio; salario editable en Ajustes
+- Menú Préstamos: lo prestado (fuera de patrimonio) y deudas Binance; Fotos pasa a Ajustes
+- Earn filter on Activity (off by default); UI in English; product name Folio
 - Project documentation set: Architecture, Agent handoff, Environment, Deployment, Contributing, Security
 
 ### Changed

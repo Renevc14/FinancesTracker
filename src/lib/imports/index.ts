@@ -42,7 +42,7 @@ export async function previewImport(
       totalRows: 0,
       parsed: [],
       duplicates: [],
-      errors: [{ line: 0, message: "Archivo vacío" }],
+      errors: [{ line: 0, message: "Empty file" }],
     };
   }
 
@@ -56,7 +56,7 @@ export async function previewImport(
       errors: [
         {
           line: 0,
-          message: `CSV demasiado grande (>${MAX_CHARS} chars). Divide el export.`,
+          message: `CSV too large (>${MAX_CHARS} chars). Split the export.`,
         },
       ],
     };

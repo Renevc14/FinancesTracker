@@ -309,6 +309,7 @@ export const userConfig = sqliteTable("user_config", {
     .default(0.005),
   syncSchedule: text("sync_schedule").notNull().default("0 6 * * *"),
   theme: text("theme").$type<"light" | "dark">().notNull().default("light"),
+  monthlySalaryUsd: real("monthly_salary_usd").notNull().default(2060),
   notificationPreferences: text("notification_preferences", { mode: "json" })
     .$type<Record<string, boolean>>()
     .default({}),
@@ -316,6 +317,23 @@ export const userConfig = sqliteTable("user_config", {
     .notNull()
     .default(sql`(datetime('now'))`),
 });
+
+export const incomeMonths = sqliteTable(
+  "income_months",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    yearMonth: text("year_month").notNull(),
+    amountUsd: real("amount_usd").notNull(),
+    source: text("source").$type<"invoice" | "salary">().notNull().default("invoice"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [uniqueIndex("income_months_ym_uidx").on(t.yearMonth)],
+);
 
 export const apiProviders = ["binance", "ibkr_flex", "kraken"] as const;
 export type ApiProvider = (typeof apiProviders)[number];
@@ -495,6 +513,35 @@ export const walletSnapshots = sqliteTable(
   (t) => [uniqueIndex("wallet_snapshots_provider_asset_uidx").on(t.provider, t.asset)],
 );
 
+export const personalLoanDirections = ["lent", "borrowed"] as const;
+export type PersonalLoanDirection = (typeof personalLoanDirections)[number];
+
+export const personalLoanStatuses = ["open", "repaid"] as const;
+export type PersonalLoanStatus = (typeof personalLoanStatuses)[number];
+
+export const personalLoans = sqliteTable("personal_loans", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  counterparty: text("counterparty").notNull(),
+  direction: text("direction")
+    .$type<PersonalLoanDirection>()
+    .notNull()
+    .default("lent"),
+  amount: real("amount").notNull(),
+  currency: text("currency").$type<"USD" | "BOB" | "EUR">().notNull(),
+  amountUsd: real("amount_usd").notNull(),
+  fxRate: real("fx_rate").notNull().default(1),
+  date: text("date").notNull(),
+  notes: text("notes"),
+  status: text("status")
+    .$type<PersonalLoanStatus>()
+    .notNull()
+    .default("open"),
+  deletedAt: text("deleted_at"),
+  ...timestamps,
+});
+
 export type Asset = typeof assets.$inferSelect;
 export type NewAsset = typeof assets.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
@@ -513,3 +560,5 @@ export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type BankAccount = typeof bankAccounts.$inferSelect;
 export type CryptoLoan = typeof cryptoLoans.$inferSelect;
 export type WalletSnapshot = typeof walletSnapshots.$inferSelect;
+export type IncomeMonth = typeof incomeMonths.$inferSelect;
+export type PersonalLoan = typeof personalLoans.$inferSelect;

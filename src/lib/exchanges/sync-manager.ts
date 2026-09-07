@@ -90,7 +90,7 @@ export async function runSync(
     await db.insert(syncLogs).values({
       syncJobId: job.id,
       level: test.ok ? "info" : "error",
-      message: test.ok ? "Conexión OK" : (test.error ?? "Fallo de conexión"),
+      message: test.ok ? "OK" : (test.error ?? "Connection failed"),
     });
 
     if (!test.ok) {
@@ -141,7 +141,7 @@ export async function runSync(
       }
       const emptyNote =
         cred.provider === "binance" && trades.length === 0
-          ? " Sin fills Spot desde el inicio del portafolio: se mantienen las compras locales."
+          ? " No Spot fills since portfolio start: local buys kept."
           : "";
       await db.insert(syncLogs).values({
         syncJobId: job.id,
@@ -171,7 +171,7 @@ export async function runSync(
       await db.insert(syncLogs).values({
         syncJobId: job.id,
         level: custody.warnings.length > 0 ? "warn" : "info",
-        message: `Custodia: ${custody.wallets.length} activos, ${custody.loans.length} préstamos, Earn ${rewardsImported.newCount} nuevas / ${rewardsImported.dupCount} duplicadas.${custody.warnings.length ? `Avisos: ${custody.warnings.join(" · ")}` : ""}`,
+        message: `Custody: ${custody.wallets.length} assets, ${custody.loans.length} loans, Earn ${rewardsImported.newCount} new / ${rewardsImported.dupCount} dup.${custody.warnings.length ? ` Warnings: ${custody.warnings.join(" · ")}` : ""}`,
       });
     }
 
@@ -348,6 +348,7 @@ async function importRewards(rewards: RewardEvent[]) {
       where: and(eq(assets.ticker, reward.asset), isNull(assets.deletedAt)),
     });
     if (!asset) continue;
+    if (asset.class === "stable") continue;
     const qty = Number(reward.amount);
     if (!Number.isFinite(qty) || qty === 0) continue;
     const date = reward.timestamp.toISOString().slice(0, 10);

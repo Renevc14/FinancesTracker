@@ -27,7 +27,7 @@ export function RunSyncButton({ credentialId }: { credentialId: string }) {
           })
         }
       >
-        {pending ? "Importando…" : "Sync ahora"}
+        {pending ? "Syncing…" : "Sync"}
       </Button>
       {error ? (
         <p className="max-w-[180px] text-right text-[12px] text-[var(--danger)]">

@@ -26,7 +26,7 @@ export function parseBinanceSpotCsv(csv: string): ImportPreview {
       totalRows: 0,
       parsed: [],
       duplicates: [],
-      errors: [{ line: 0, message: "CSV vacío o sin datos" }],
+      errors: [{ line: 0, message: "Empty CSV" }],
     };
   }
 
@@ -99,7 +99,7 @@ export function parseBinanceSpotCsv(csv: string): ImportPreview {
     } catch (err) {
       errors.push({
         line: lineNo,
-        message: err instanceof Error ? err.message : "Fila inválida",
+        message: err instanceof Error ? err.message : "Invalid row",
         raw: lines[i],
       });
     }
@@ -153,6 +153,6 @@ function normalizeBinanceDate(value: string): string {
   const d = value.slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   const t = Date.parse(value);
-  if (Number.isNaN(t)) throw new Error(`Fecha Binance inválida: ${value}`);
+  if (Number.isNaN(t)) throw new Error(`Invalid Binance date: ${value}`);
   return new Date(t).toISOString().slice(0, 10);
 }

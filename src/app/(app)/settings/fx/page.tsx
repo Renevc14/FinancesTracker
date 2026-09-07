@@ -17,43 +17,29 @@ export default async function FxSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/settings"
-          className="text-xs text-[var(--accent)] hover:underline"
-        >
-          ← Ajustes
+        <Link href="/settings" className="ios-back">
+          ‹ Settings
         </Link>
-        <h1 className="mt-2 font-display text-3xl tracking-tight">
-          Tipos de cambio
-        </h1>
-        <p className="text-sm text-[var(--muted)]">
-          FX histórico (paralelo BOB = manual). USD/EUR se puede refrescar desde el dashboard.
-        </p>
+        <h1 className="mt-2 ios-large-title">FX</h1>
       </div>
 
       <RefreshMarketsButton />
 
-      <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/70">
+      <ul className="ios-group">
         {rates.length === 0 && (
-          <li className="px-4 py-6 text-sm text-[var(--muted)]">
-            Sin FX. Ejecuta{" "}
-            <code className="font-mono">npm run db:seed</code>.
-          </li>
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">None yet</li>
         )}
         {rates.map((r) => (
-          <li
-            key={r.id}
-            className="flex items-center justify-between px-4 py-3 text-sm"
-          >
+          <li key={r.id} className="ios-row">
             <div>
-              <p className="font-medium">
+              <p className="ios-headline">
                 {r.fromCurrency}/{r.toCurrency}
               </p>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-[13px] text-[var(--muted)]">
                 {formatDate(r.date)} · {r.source}
               </p>
             </div>
-            <p className="font-mono">{r.rate.toFixed(4)}</p>
+            <p className="money text-[17px]">{r.rate.toFixed(4)}</p>
           </li>
         ))}
       </ul>

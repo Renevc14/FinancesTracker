@@ -24,7 +24,7 @@ export function parseIbkrFlexCsv(csv: string): ImportPreview {
       totalRows: 0,
       parsed: [],
       duplicates: [],
-      errors: [{ line: 0, message: "CSV IBKR vacío" }],
+      errors: [{ line: 0, message: "Empty IBKR CSV" }],
     };
   }
 
@@ -101,7 +101,7 @@ export function parseIbkrFlexCsv(csv: string): ImportPreview {
     } catch (err) {
       errors.push({
         line: lineNo,
-        message: err instanceof Error ? err.message : "Fila inválida",
+        message: err instanceof Error ? err.message : "Invalid row",
         raw: lines[i],
       });
     }

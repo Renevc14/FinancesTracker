@@ -8,6 +8,7 @@ import {
   Tooltip,
   YAxis,
 } from "recharts";
+import { ClientOnlyChart } from "@/components/charts/client-only-chart";
 import type { NavHistoryPoint } from "@/lib/services/history";
 import { cn, formatDate, formatMoney, formatPct } from "@/lib/utils";
 
@@ -93,11 +94,11 @@ export function NavHistoryChart({
     return (
       <div className="space-y-1.5">
         <p className="text-[13px] font-medium text-[var(--muted)]">
-          Patrimonio total
+          Net worth
         </p>
         <h1 className="ios-large-title money">{money(currentUsd)}</h1>
         <p className="py-6 text-center text-[15px] text-[var(--muted)]">
-          Aún no hay historial suficiente para el gráfico
+          Not enough history
         </p>
       </div>
     );
@@ -107,7 +108,7 @@ export function NavHistoryChart({
     <div className="space-y-3">
       <div className="space-y-1">
         <p className="text-[13px] font-medium text-[var(--muted)]">
-          Patrimonio total
+          Net worth
         </p>
         <h1 className="ios-large-title money">
           {money(display?.valueUsd ?? currentUsd)}
@@ -120,18 +121,21 @@ export function NavHistoryChart({
         >
           {up ? "▲" : "▼"} {money(Math.abs(delta))}{" "}
           <span className="font-medium">({formatPct(deltaPct)})</span>
-          <span className="ml-1.5 font-medium text-[var(--muted)]">
-            {range === "MAX" ? "en el período" : range}
-          </span>
+          {range !== "MAX" && (
+            <span className="ml-1.5 font-medium text-[var(--muted)]">
+              {range}
+            </span>
+          )}
         </p>
       </div>
 
       <div
         className="-mx-1 h-[176px] touch-pan-y"
         role="img"
-        aria-label="Evolución histórica del patrimonio"
+        aria-label="Net worth history"
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ClientOnlyChart className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={sliced}
             margin={{ top: 8, right: 2, left: 2, bottom: 0 }}
@@ -194,12 +198,13 @@ export function NavHistoryChart({
             />
           </AreaChart>
         </ResponsiveContainer>
+        </ClientOnlyChart>
       </div>
 
       <div
         className="mx-auto flex h-8 w-full max-w-[340px] items-center rounded-full bg-[var(--surface-3)] p-0.5"
         role="tablist"
-        aria-label="Rango del gráfico"
+        aria-label="Chart range"
       >
         {RANGES.map((item) => (
           <button

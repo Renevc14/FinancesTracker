@@ -1,6 +1,6 @@
 "use client";
 
-export function PrintButton({ label = "Exportar / imprimir" }: { label?: string }) {
+export function PrintButton({ label = "Print" }: { label?: string }) {
   return (
     <button
       type="button"

@@ -7,7 +7,8 @@ Context for Cursor Cloud / Desktop agents picking up this repo.
 - **URL:** https://github.com/Renevc14/FinancesTracker
 - **Default branch to use:** `main`
 - **Local path (owner PC):** `F:\DOCUMENTOS IMPORTANTES\FinancesTracker`
-- **Product name:** Patrimonio
+- **Product name:** Folio
+- **UI language:** English
 - **Scope:** personal single-user app — do **not** turn into SaaS
 
 ## First 5 minutes
@@ -35,7 +36,7 @@ Smoke:
 
 - `GET /login` → 200
 - unauthenticated `/dashboard` → 307 to login
-- after login: dashboard, transactions, land, snapshots, settings, import
+- after login: dashboard, transactions, land, loans, settings
 
 ## What works today
 
@@ -43,7 +44,7 @@ Smoke:
 - Transactions CRUD
 - Land lots M-176-15 / M-176-16 + payment flows (receipt file + optional discount)
 - Dashboard KPIs + allocation + currency toggle
-- **Patrimonio incluye lotes al costo** (pagado); saldo pendiente en comprometido
+- **NAV includes lots at cost** (paid); remaining balance in committed
 - Cash bancario (último saldo) en patrimonio
 - Precios CoinGecko/Yahoo y FX USD/EUR en vivo
 - Manual monthly snapshots + cron diario
@@ -51,6 +52,10 @@ Smoke:
 - Sync / reconciliation (aceptar API) / FIRE editable / Modelo 720
 - Binance Spot API (`myTrades` USDT/USDC) es la fuente de verdad de compras/ventas de criptos del catálogo (BTC/ETH/SOL) **desde 2026-02-01**; CSV es fallback
 - Binance Earn (flexible/locked), Funding y préstamos (colateral + deuda neta en el patrimonio)
+- Interés diario de Simple Earn se importa como movimientos `reward` en el sync
+- Ratio ahorro vs salario (facturas feb–ago, salario editable desde sep)
+- Préstamos personales (lo prestado no entra en patrimonio) y deudas Binance en `/loans`
+- Fotos de patrimonio en Ajustes (ya no es pestaña principal)
 - Auto-Invest CSV, IBKR Flex CSV/XML, Kraken client
 - PWA manifest
 - Docker Compose local run
@@ -93,7 +98,7 @@ Priority backlog:
 ## Suggested kickoff prompt
 
 ```text
-You are continuing FinancesTracker (Patrimonio).
+You are continuing FinancesTracker (Folio).
 Read README.md, docs/AGENT_HANDOFF.md, and docs/ARCHITECTURE.md.
 Ensure local app runs, then implement the highest-priority Fase 2 item
 the user specifies (default: finish IBKR/Auto-Invest import parsers).

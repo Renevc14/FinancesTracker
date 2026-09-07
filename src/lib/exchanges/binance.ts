@@ -33,8 +33,9 @@ function num(value: unknown): number {
 function asRows(data: unknown): Array<Record<string, unknown>> {
   if (Array.isArray(data)) return data as Array<Record<string, unknown>>;
   if (data && typeof data === "object") {
-    const rows = (data as { rows?: unknown }).rows;
-    if (Array.isArray(rows)) return rows as Array<Record<string, unknown>>;
+    const rec = data as { rows?: unknown; list?: unknown };
+    if (Array.isArray(rec.rows)) return rec.rows as Array<Record<string, unknown>>;
+    if (Array.isArray(rec.list)) return rec.list as Array<Record<string, unknown>>;
   }
   return [];
 }
@@ -88,7 +89,7 @@ export class BinanceClient implements ExchangeClient {
         scopes: ["read"],
         error:
           balances.length === 0
-            ? "Sin balances (cuenta vacía o solo lectura OK)"
+            ? "No balances (empty or read-only OK)"
             : undefined,
       };
     } catch (err) {
@@ -135,7 +136,7 @@ export class BinanceClient implements ExchangeClient {
     const loans = await this.safeCall("Loan", () => this.getLoans(), warnings);
     const rewards = await this.safeCall(
       "Earn rewards",
-      () => this.getEarnRewards(portfolioStartMs()),
+      () => this.getEarnRewards(portfolioStartMs(), warnings),
       warnings,
     );
 
@@ -209,56 +210,87 @@ export class BinanceClient implements ExchangeClient {
     return out;
   }
 
-  private async getEarnRewards(sinceMs: number): Promise<RewardEvent[]> {
+  private async getEarnRewards(
+    sinceMs: number,
+    warnings: string[],
+  ): Promise<RewardEvent[]> {
     const out: RewardEvent[] = [];
-    const now = Date.now();
-    const windowMs = 30 * 24 * 60 * 60 * 1000;
-    const paths = [
-      "/sapi/v1/simple-earn/flexible/history/rewardsRecord",
-      "/sapi/v1/simple-earn/locked/history/rewardsRecord",
-    ];
     const types = ["BONUS", "REALTIME", "REWARDS"];
-    for (const path of paths) {
-      const kind = path.includes("locked") ? "locked" : "flex";
-      for (const rewardType of types) {
-        for (let start = sinceMs; start < now; start += windowMs) {
-          const end = Math.min(start + windowMs - 1, now);
-          for (let page = 1; page <= 20; page++) {
-            await sleep(200);
-            let data: unknown;
-            try {
-              data = await this.signedRequest("GET", path, {
-                type: rewardType,
-                startTime: String(start),
-                endTime: String(end),
-                current: String(page),
-                size: "100",
-              });
-            } catch (err) {
-              console.error("[binance Earn rewards]", kind, rewardType, err);
-              break;
-            }
-            const rows = asRows(data);
-            if (rows.length === 0) break;
-            for (const row of rows) {
-              const time = num(row.time);
-              const amount = String(row.rewards ?? row.amount ?? "0");
-              const asset = String(row.asset ?? "").toUpperCase();
-              if (!asset || num(amount) === 0 || time < sinceMs) continue;
-              out.push({
-                externalId: `${kind}:${asset}:${time}:${amount}:${String(row.type ?? rewardType)}`,
-                timestamp: new Date(time),
-                asset,
-                amount,
-                source: "simple_earn",
-              });
-            }
-            if (rows.length < 100) break;
-          }
+    const flexPath = "/sapi/v1/simple-earn/flexible/history/rewardsRecord";
+    const lockedPath = "/sapi/v1/simple-earn/locked/history/rewardsRecord";
+
+    for (const rewardType of types) {
+      await this.paginateSigned(
+        flexPath,
+        { type: rewardType },
+        sinceMs,
+        30,
+        (row) => pushReward(out, row, `flex:${rewardType}`, sinceMs),
+        warnings,
+      );
+    }
+    await this.paginateSigned(
+      lockedPath,
+      {},
+      sinceMs,
+      30,
+      (row) => pushReward(out, row, "locked", sinceMs),
+      warnings,
+    );
+
+    if (out.length === 0) {
+      await this.paginateSigned(
+        "/sapi/v1/asset/assetDividend",
+        { limit: "500" },
+        sinceMs,
+        90,
+        (row) => pushReward(out, row, "div", sinceMs),
+        warnings,
+        { pageParam: null, sizeParam: null },
+      );
+    }
+
+    return dedupeRewards(out);
+  }
+
+  private async paginateSigned(
+    path: string,
+    extra: Record<string, string>,
+    sinceMs: number,
+    windowDays: number,
+    onRow: (row: Record<string, unknown>) => void,
+    warnings: string[],
+    opts?: { pageParam: string | null; sizeParam: string | null },
+  ): Promise<void> {
+    const windowMs = windowDays * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const pageParam = opts?.pageParam === undefined ? "current" : opts.pageParam;
+    const sizeParam = opts?.sizeParam === undefined ? "size" : opts.sizeParam;
+    for (let start = sinceMs; start < now; start += windowMs) {
+      const end = Math.min(start + windowMs - 1, now);
+      for (let page = 1; page <= 20; page++) {
+        await sleep(200);
+        const query: Record<string, string> = {
+          ...extra,
+          startTime: String(start),
+          endTime: String(end),
+        };
+        if (pageParam) query[pageParam] = String(page);
+        if (sizeParam) query[sizeParam] = "100";
+        try {
+          const data = await this.signedRequest("GET", path, query);
+          const rows = asRows(data);
+          if (rows.length === 0) break;
+          for (const row of rows) onRow(row);
+          if (rows.length < 100 || !pageParam) break;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          warnings.push(`Earn ${path}: ${message}`);
+          console.error("[binance Earn rewards]", path, extra, err);
+          return;
         }
       }
     }
-    return out;
   }
 
   private async getAllTrades(
@@ -322,12 +354,13 @@ export class BinanceClient implements ExchangeClient {
     path: string,
     extra: Record<string, string> = {},
   ): Promise<unknown> {
-    const timestamp = Date.now();
-    const params = new URLSearchParams({
-      timestamp: String(timestamp),
-      recvWindow: "10000",
-      ...extra,
-    });
+    const timestamp = Date.now() - 3000;
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(extra)) {
+      if (value !== "") params.set(key, value);
+    }
+    params.set("recvWindow", "60000");
+    params.set("timestamp", String(timestamp));
     const signature = createHmac("sha256", this.apiSecret)
       .update(params.toString())
       .digest("hex");
@@ -441,4 +474,35 @@ function mergeWallets(input: {
     }))
     .filter((w) => w.total > 0)
     .sort((a, b) => b.total - a.total);
+}
+
+function pushReward(
+  out: RewardEvent[],
+  row: Record<string, unknown>,
+  kind: string,
+  sinceMs: number,
+) {
+  const time = num(row.time ?? row.divTime);
+  const amount = String(row.rewards ?? row.amount ?? "0");
+  const asset = String(row.asset ?? "").toUpperCase();
+  if (!asset || num(amount) === 0 || time < sinceMs) return;
+  const id = row.tranId ?? row.id ?? `${time}:${amount}:${kind}`;
+  out.push({
+    externalId: `${kind}:${asset}:${String(id)}`,
+    timestamp: new Date(time),
+    asset,
+    amount,
+    source: "simple_earn",
+  });
+}
+
+function dedupeRewards(rows: RewardEvent[]): RewardEvent[] {
+  const seen = new Set<string>();
+  const out: RewardEvent[] = [];
+  for (const row of rows) {
+    if (seen.has(row.externalId)) continue;
+    seen.add(row.externalId);
+    out.push(row);
+  }
+  return out;
 }

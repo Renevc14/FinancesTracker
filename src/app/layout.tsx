@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/brand";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
@@ -5,13 +6,13 @@ import { parseTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Patrimonio",
-  description: "Tracker patrimonial multi-moneda — cripto, acciones y terrenos",
+  title: APP_NAME,
+  description: "Personal net worth — crypto, stocks, and land",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Patrimonio",
+    title: APP_NAME,
   },
 };
 
@@ -45,7 +46,7 @@ export default async function RootLayout({
   const theme = await resolveTheme();
   return (
     <html
-      lang="es"
+      lang="en"
       className="h-full antialiased"
       data-theme={theme}
       suppressHydrationWarning

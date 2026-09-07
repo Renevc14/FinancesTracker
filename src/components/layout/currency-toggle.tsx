@@ -14,7 +14,7 @@ export function CurrencyToggle({ current }: { current: DisplayCurrency }) {
     <div
       className="inline-flex h-7 items-center rounded-full bg-[var(--surface-3)] p-0.5"
       role="group"
-      aria-label="Moneda de visualización"
+      aria-label="Display currency"
     >
       {options.map((c) => (
         <button

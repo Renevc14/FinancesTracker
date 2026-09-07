@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AllocationChart } from "@/components/charts/allocation-chart";
 import { NavHistoryChart } from "@/components/charts/nav-history-chart";
+import { SavingsRateChart } from "@/components/charts/savings-rate-chart";
 import { RefreshMarketsButton } from "@/components/forms/refresh-markets-button";
 import { Progress } from "@/components/ui/progress";
 import { HoldingsList } from "@/components/holdings/holdings-list";
@@ -8,16 +9,12 @@ import { AssetLogo } from "@/components/ui/asset-logo";
 import { txTypeLabel } from "@/lib/labels";
 import { daysUntil } from "@/lib/services/market";
 import { getPortfolioHistory } from "@/lib/services/history";
+import { getSavingsSummary } from "@/lib/services/savings";
 import {
   convertFromUsd,
   getPortfolioDashboard,
 } from "@/lib/services/portfolio";
-import {
-  formatDate,
-  formatMoney,
-  formatPct,
-  formatQuantity,
-} from "@/lib/utils";
+import { formatDate, formatMoney, formatPct } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +24,7 @@ export default async function DashboardPage() {
     valueUsd: dash.totalMarketValueUsd,
     investedUsd: dash.totalInvestedUsd,
   });
+  const savings = await getSavingsSummary();
   const fx = dash.fxToDisplay;
   const cur = dash.displayCurrency;
   const money = (usd: number) => formatMoney(convertFromUsd(usd, fx), cur);
@@ -45,7 +43,7 @@ export default async function DashboardPage() {
       {dash.nextLandPayment && landDueDays != null && landDueDays <= 14 && (
         <section className="ios-group p-4">
           <p className="text-[15px] font-semibold text-[var(--warn)]">
-            Cuota de lote en {landDueDays < 0 ? "atraso" : `${landDueDays} días`}
+            Lot due {landDueDays < 0 ? "overdue" : `in ${landDueDays}d`}
           </p>
           <p className="mt-1 text-[13px] text-[var(--muted)]">
             {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
@@ -65,36 +63,23 @@ export default async function DashboardPage() {
           currency={cur}
           fx={fx}
         />
-        {dash.landPaidUsd > 0 && (
-          <p className="text-[13px] text-[var(--muted)]">
-            Incluye lotes al costo · {money(dash.landPaidUsd)}
-          </p>
-        )}
-        {dash.debtUsd > 0 && (
-          <p className="text-[13px] text-[var(--muted)]">
-            Neto de préstamo Binance · {money(dash.debtUsd)}
-          </p>
-        )}
-        {dash.lastUpdated && (
-          <p className="text-[13px] text-[var(--muted-2)]">
-            Actualizado {formatDate(dash.lastUpdated)}
-          </p>
-        )}
         <RefreshMarketsButton />
       </section>
 
+      <SavingsRateChart summary={savings} currency={cur} fx={fx} />
+
       <section className="ios-group">
         <div className="grid grid-cols-2">
-          <Kpi label="Invertido" value={money(dash.totalInvestedUsd)} />
-          <Kpi label="Valor" value={money(dash.totalMarketValueUsd)} border />
+          <Kpi label="Cost" value={money(dash.totalInvestedUsd)} />
+          <Kpi label="Value" value={money(dash.totalMarketValueUsd)} border />
           <Kpi
-            label="G/P"
+            label="P/L"
             value={money(dash.pnlUsd)}
             tone={pnlPositive ? "pos" : "neg"}
             top
           />
           <Kpi
-            label="Rendimiento"
+            label="Return"
             value={formatPct(dash.pnlPct)}
             tone={pnlPositive ? "pos" : "neg"}
             border
@@ -105,28 +90,28 @@ export default async function DashboardPage() {
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between px-0.5">
-          <h2 className="ios-title">Terrenos</h2>
+          <h2 className="ios-title">Lots</h2>
           <Link
             href="/land"
             className="ios-pressable inline-flex min-h-11 items-center text-[17px] font-normal text-[var(--accent)]"
           >
-            Ver
+            All
           </Link>
         </div>
         <div className="ios-group space-y-3 p-4">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[15px] text-[var(--ink-soft)]">Pagado</p>
+            <p className="text-[15px] text-[var(--ink-soft)]">Paid</p>
             <p className="money text-[15px] font-semibold">
               {money(dash.landPaidUsd)}
               <span className="ml-1 font-normal text-[var(--muted)]">
-                de {money(dash.landCommittedUsd)}
+                of {money(dash.landCommittedUsd)}
               </span>
             </p>
           </div>
           <Progress value={landPct} />
           {dash.nextLandPayment && (
             <p className="text-[13px] leading-snug text-[var(--warn)]">
-              Próximo {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
+              Due {formatDate(dash.nextLandPayment.dueDate)} ·{" "}
               {formatMoney(
                 dash.nextLandPayment.amountLocal,
                 dash.nextLandPayment.currency,
@@ -137,38 +122,8 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {dash.loans.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="ios-title px-0.5">Préstamos</h2>
-          <ul className="ios-group">
-            {dash.loans.map((loan) => (
-              <li
-                key={`${loan.loanCoin}-${loan.collateralCoin}`}
-                className="ios-row"
-              >
-                <div className="min-w-0">
-                  <p className="ios-headline">
-                    {formatQuantity(loan.totalDebt)} {loan.loanCoin}
-                  </p>
-                  <p className="text-[13px] text-[var(--muted)]">
-                    Colateral {formatQuantity(loan.collateralAmount)}{" "}
-                    {loan.collateralCoin}
-                    {loan.currentLtv != null
-                      ? ` · LTV ${(loan.currentLtv * 100).toFixed(1)}%`
-                      : ""}
-                  </p>
-                </div>
-                <p className="money text-[17px] font-semibold text-[var(--negative)]">
-                  −{money(loan.debtUsd)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       <section className="space-y-3">
-        <h2 className="ios-title px-0.5">Distribución</h2>
+        <h2 className="ios-title px-0.5">Allocation</h2>
         <div className="ios-group p-4">
           <AllocationChart data={dash.byClass} currency={cur} fx={fx} />
         </div>
@@ -187,18 +142,18 @@ export default async function DashboardPage() {
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between px-0.5">
-          <h2 className="ios-title">Actividad</h2>
+          <h2 className="ios-title">Activity</h2>
           <Link
             href="/transactions"
             className="ios-pressable inline-flex min-h-11 items-center text-[17px] font-normal text-[var(--accent)]"
           >
-            Ver todo
+            All
           </Link>
         </div>
         <ul className="ios-group">
           {dash.recentTransactions.length === 0 && (
             <li className="px-4 py-6 text-center text-[15px] text-[var(--muted)]">
-              Sin movimientos todavía
+              None yet
             </li>
           )}
           {dash.recentTransactions.map((tx) => (

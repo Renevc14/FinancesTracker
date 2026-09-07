@@ -20,10 +20,10 @@ export default async function NewLandPaymentPage({
           href={`/land/${id}`}
           className="text-xs text-[var(--accent)] hover:underline"
         >
-          ← Volver al lote
+          ← Lot
         </Link>
         <h1 className="mt-2 font-display text-3xl tracking-tight">
-          Nuevo pago
+          New payment
         </h1>
       </div>
       <LandPaymentForm lands={lands} defaultLandId={id} />

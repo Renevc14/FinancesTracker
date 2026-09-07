@@ -58,20 +58,50 @@ export function localISODate(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+function parseDisplayDate(date: string | Date): Date {
+  if (date instanceof Date) return date;
+  return new Date(`${date.slice(0, 10)}T12:00:00`);
+}
+
 export function formatDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date + "T12:00:00") : date;
-  return d.toLocaleDateString("es-BO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const d = parseDisplayDate(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = MONTHS_SHORT[d.getMonth()] ?? "Jan";
+  return `${day} ${month} ${d.getFullYear()}`;
 }
 
 export function formatMonthYear(date: string): string {
-  const d = new Date(date + "T12:00:00");
-  const label = d.toLocaleDateString("es-BO", {
-    month: "long",
-    year: "numeric",
-  });
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const d = parseDisplayDate(date);
+  const month = MONTHS_LONG[d.getMonth()] ?? "January";
+  return `${month} ${d.getFullYear()}`;
 }

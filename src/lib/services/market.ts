@@ -57,7 +57,7 @@ async function refreshCrypto(today: string): Promise<{ n: number; errors: string
       n += 1;
     }
   } catch (err) {
-    errors.push(err instanceof Error ? err.message : "CoinGecko falló");
+    errors.push(err instanceof Error ? err.message : "CoinGecko failed");
   }
   return { n, errors };
 }
@@ -96,7 +96,7 @@ async function refreshStocks(today: string): Promise<{ n: number; errors: string
       });
       n += 1;
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : `Yahoo ${symbol} falló`);
+      errors.push(err instanceof Error ? err.message : `Yahoo ${symbol} failed`);
     }
   }
   return { n, errors };
@@ -124,7 +124,7 @@ async function refreshFx(today: string): Promise<{ n: number; errors: string[] }
       errors.push("FX USD/EUR no disponible");
     }
   } catch (err) {
-    errors.push(err instanceof Error ? err.message : "FX API falló");
+    errors.push(err instanceof Error ? err.message : "FX API failed");
   }
   return { n, errors };
 }

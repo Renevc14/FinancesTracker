@@ -18,7 +18,7 @@ cp .env.example .env.local
 | `AUTH_SECRET` | yes | random 32+ bytes | `openssl rand -base64 32` |
 | `AUTH_USERNAME` | yes | `rene` | Single user |
 | `AUTH_PASSWORD` | yes | strong password | Change from example defaults |
-| `NEXT_PUBLIC_APP_NAME` | no | `Patrimonio` | Exposed to browser |
+| `NEXT_PUBLIC_APP_NAME` | no | `Folio` | Exposed to browser |
 
 ## Generating AUTH_SECRET
 

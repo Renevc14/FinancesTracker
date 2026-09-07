@@ -106,6 +106,21 @@ const statements = [
     captured_at text DEFAULT (datetime('now')) NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS wallet_snapshots_provider_asset_uidx ON wallet_snapshots (provider, asset)`,
+  `CREATE TABLE IF NOT EXISTS personal_loans (
+    id text PRIMARY KEY NOT NULL,
+    counterparty text NOT NULL,
+    direction text DEFAULT 'lent' NOT NULL,
+    amount real NOT NULL,
+    currency text NOT NULL,
+    amount_usd real NOT NULL,
+    fx_rate real DEFAULT 1 NOT NULL,
+    date text NOT NULL,
+    notes text,
+    status text DEFAULT 'open' NOT NULL,
+    deleted_at text,
+    created_at text DEFAULT (datetime('now')) NOT NULL,
+    updated_at text DEFAULT (datetime('now')) NOT NULL
+  )`,
 ];
 
 async function main() {
@@ -116,6 +131,7 @@ async function main() {
     "ALTER TABLE user_config ADD COLUMN reconciliation_drift_threshold real DEFAULT 0.005",
     "ALTER TABLE user_config ADD COLUMN sync_schedule text DEFAULT '0 6 * * *'",
     "ALTER TABLE user_config ADD COLUMN theme text DEFAULT 'light'",
+    "ALTER TABLE user_config ADD COLUMN monthly_salary_usd real DEFAULT 2060",
   ]) {
     try {
       await client.execute(col);
@@ -124,6 +140,40 @@ async function main() {
     }
   }
   await client.execute(`
+    CREATE TABLE IF NOT EXISTS income_months (
+      id text PRIMARY KEY NOT NULL,
+      year_month text NOT NULL,
+      amount_usd real NOT NULL,
+      source text DEFAULT 'invoice' NOT NULL,
+      notes text,
+      created_at text DEFAULT (datetime('now')) NOT NULL
+    )
+  `);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS income_months_ym_uidx ON income_months (year_month)`,
+  );
+  const invoices: Array<[string, number, string]> = [
+    ["2026-02", 1020, "INV-006"],
+    ["2026-03", 884, "INV-007"],
+    ["2026-04", 1498, "INV-008"],
+    ["2026-05", 2060, "INV-009"],
+    ["2026-06", 2060, "INV-010"],
+    ["2026-07", 2060, "INV-011"],
+    ["2026-08", 2060, "INV-012"],
+  ];
+  for (const [yearMonth, amount, notes] of invoices) {
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO income_months (id, year_month, amount_usd, source, notes)
+            VALUES (?, ?, ?, 'invoice', ?)`,
+      args: [crypto.randomUUID(), yearMonth, amount, notes],
+    });
+  }
+  await client.execute(`
+    UPDATE user_config
+    SET monthly_salary_usd = 2060
+    WHERE monthly_salary_usd IS NULL OR monthly_salary_usd = 0
+  `);
+  await client.execute(`
     UPDATE transactions
     SET deleted_at = datetime('now')
     WHERE deleted_at IS NULL
@@ -131,6 +181,36 @@ async function main() {
       AND notes = 'Reserva / fondo de aterrizaje'
       AND quantity = 600
   `);
+  await client.execute(`
+    UPDATE transactions
+    SET deleted_at = datetime('now')
+    WHERE deleted_at IS NULL
+      AND imported_from = 'binance_earn'
+      AND type = 'reward'
+      AND asset_id IN (SELECT id FROM assets WHERE class = 'stable')
+  `);
+
+  const fxResult = await client.execute(
+    `SELECT rate FROM fx_rates
+     WHERE from_currency = 'USD' AND to_currency = 'BOB'
+     ORDER BY date DESC LIMIT 1`,
+  );
+  const bobPerUsd = Number(fxResult.rows[0]?.rate) || 12.3;
+  const personalLoans: Array<[string, string, number, string, number, number]> = [
+    ["pl-ruben", "Ruben", 70, "BOB", 70 / bobPerUsd, bobPerUsd],
+    ["pl-diego", "Diego", 110, "BOB", 110 / bobPerUsd, bobPerUsd],
+    ["pl-padre", "Padre", 4410, "USD", 4410, 1],
+    ["pl-rubi", "Hermana Rubí", 82, "USD", 82, 1],
+  ];
+  for (const [id, counterparty, amount, currency, amountUsd, fxRate] of personalLoans) {
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO personal_loans
+            (id, counterparty, direction, amount, currency, amount_usd, fx_rate, date, status)
+            VALUES (?, ?, 'lent', ?, ?, ?, ?, '2026-02-01', 'open')`,
+      args: [id, counterparty, amount, currency, amountUsd, fxRate],
+    });
+  }
+
   console.log("Fase 2 tables ensured.");
 }
 

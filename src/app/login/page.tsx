@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { APP_NAME } from "@/lib/brand";
 import { loginAction, type LoginState } from "@/lib/login-action";
 
 const initial: LoginState = {};
@@ -17,7 +18,7 @@ function LoginForm() {
     <form action={action} className="space-y-5">
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div className="space-y-2">
-        <Label htmlFor="username">Usuario</Label>
+        <Label htmlFor="username">Username</Label>
         <Input
           id="username"
           name="username"
@@ -27,28 +28,25 @@ function LoginForm() {
           spellCheck={false}
           required
           defaultValue="rene"
-          placeholder="rene"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
+        <Label htmlFor="password">Password</Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
-          placeholder="••••••••"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="totp">Código 2FA</Label>
+        <Label htmlFor="totp">2FA</Label>
         <Input
           id="totp"
           name="totp"
           inputMode="numeric"
           autoComplete="one-time-code"
-          placeholder="Opcional"
         />
       </div>
       {state.error && (
@@ -60,7 +58,7 @@ function LoginForm() {
         </p>
       )}
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
-        {pending ? "Entrando…" : "Continuar"}
+        {pending ? "Signing in…" : "Continue"}
       </Button>
     </form>
   );
@@ -71,26 +69,20 @@ export default function LoginPage() {
     <div className="relative flex min-h-dvh items-center justify-center px-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[var(--bg)]" />
       <div className="w-full max-w-sm animate-fade-in space-y-8">
-        <div className="space-y-2 text-center">
-          <p className="ios-large-title text-[var(--ink)]">Patrimonio</p>
-          <p className="text-[15px] text-[var(--muted)]">
-            Tu patrimonio, en un solo lugar
-          </p>
-        </div>
+        <p className="ios-large-title text-center text-[var(--ink)]">
+          {APP_NAME}
+        </p>
         <div className="ios-group p-5 shadow-sm">
           <Suspense
             fallback={
               <p className="text-center text-[15px] text-[var(--muted)]">
-                Cargando…
+                Loading…
               </p>
             }
           >
             <LoginForm />
           </Suspense>
         </div>
-        <p className="text-center text-[13px] text-[var(--muted-2)]">
-          Acceso personal · datos locales
-        </p>
       </div>
     </div>
   );

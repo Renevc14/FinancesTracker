@@ -18,19 +18,16 @@ export default async function CompliancePage() {
     <div className="space-y-6">
       <div>
         <h1 className="ios-large-title">Modelo 720/721</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Umbral informativo — no calcula liquidación
-        </p>
       </div>
       <section className="ios-group p-4 space-y-2">
         <p className={`ios-headline ${BAND[status.band]}`}>
-          {formatPct(status.pctOfThreshold)} del umbral
+          {formatPct(status.pctOfThreshold)} of threshold
         </p>
         <p className="money text-[22px] font-semibold">
           {formatMoney(status.totalEur, "EUR")}
         </p>
         <p className="text-[13px] text-[var(--muted)]">
-          Umbral {formatMoney(status.thresholdEur, "EUR")}
+          Threshold {formatMoney(status.thresholdEur, "EUR")}
         </p>
         <PrintButton />
       </section>

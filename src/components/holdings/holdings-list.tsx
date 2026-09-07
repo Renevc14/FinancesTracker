@@ -40,9 +40,9 @@ function HoldingItem({
   const expandable = holding.wallets.length > 0;
   const staticNote =
     holding.class === "land"
-      ? "al costo"
+      ? "at cost"
       : holding.class === "cash"
-        ? "saldo"
+        ? "cash"
         : null;
   const avgCost =
     holding.quantity > 0 && holding.investedUsd > 0
@@ -158,12 +158,12 @@ function HoldingItem({
           ))}
           {avgCost != null ? (
             <li className="flex min-h-10 items-center justify-between gap-3 text-[13px] text-[var(--muted)]">
-              <span>Precio medio</span>
+              <span>Avg cost</span>
               <span className="money">{formatMoney(avgCost, "USD")}</span>
             </li>
           ) : null}
           <li className="flex min-h-10 items-center justify-between gap-3 text-[13px] text-[var(--muted)]">
-            <span>Rendimiento</span>
+            <span>Return</span>
             <span
               className={cn(
                 "tabular-nums",

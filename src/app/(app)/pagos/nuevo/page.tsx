@@ -22,12 +22,9 @@ export default async function NewLandPaymentPage({
           href={lote ? `/land/${lote}?tab=payments` : "/land"}
           className="text-[13px] font-medium text-[var(--accent)]"
         >
-          ← Terrenos
+          ← Lots
         </Link>
-        <h1 className="mt-2 ios-large-title">Nuevo pago</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Cuota, inicial o reserva de Berchatti
-        </p>
+        <h1 className="mt-2 ios-large-title">New payment</h1>
       </div>
       <div className="ios-group p-4">
         <LandPaymentForm

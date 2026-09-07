@@ -19,19 +19,19 @@ export function receiptsDir(): string {
 
 export function safeReceiptFilename(name: string): string {
   const base = path.basename(name).replace(/[^\w.\-]+/g, "_").slice(0, 80);
-  return base || "comprobante";
+  return base || "receipt";
 }
 
 export function assertReceiptFile(file: File): string | null {
-  if (file.size <= 0) return "Archivo vacío";
+  if (file.size <= 0) return "Empty file";
   if (file.size > RECEIPT_MAX_BYTES) {
-    return "El comprobante no puede superar 12 MB";
+    return "Receipt must be under 12 MB";
   }
   const mime = file.type || "application/octet-stream";
   const ext = path.extname(file.name).toLowerCase();
   const okExt = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".heic", ".heif"];
   if (!ALLOWED_MIME.has(mime) && !okExt.includes(ext)) {
-    return "Adjunta una imagen o un PDF";
+    return "Attach an image or PDF";
   }
   return null;
 }

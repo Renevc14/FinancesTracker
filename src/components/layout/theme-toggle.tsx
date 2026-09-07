@@ -16,7 +16,7 @@ export function ThemeToggle({ current }: { current: Theme }) {
       type="button"
       role="switch"
       aria-checked={dark}
-      aria-label="Modo noche"
+      aria-label="Dark mode"
       disabled={pending}
       onClick={() =>
         start(async () => {

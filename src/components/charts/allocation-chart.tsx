@@ -28,7 +28,7 @@ export function AllocationChart({
   if (chartData.length === 0) {
     return (
       <p className="py-8 text-center text-[15px] text-[var(--muted)]">
-        Sin datos de distribución todavía
+        No allocation yet
       </p>
     );
   }

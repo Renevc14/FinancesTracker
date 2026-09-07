@@ -22,7 +22,7 @@ export function RefreshMarketsButton() {
         })
       }
     >
-      {pending ? "Actualizando…" : "Precios en vivo"}
+      {pending ? "Updating…" : "Prices"}
     </Button>
   );
 }

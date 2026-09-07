@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 export type LandTabId = "contract" | "payments" | "schedule" | "status";
 
 const TABS: { id: LandTabId; label: string }[] = [
-  { id: "status", label: "Estado" },
-  { id: "contract", label: "Contrato" },
-  { id: "payments", label: "Pagos" },
-  { id: "schedule", label: "Cronograma" },
+  { id: "status", label: "Status" },
+  { id: "contract", label: "Contract" },
+  { id: "payments", label: "Payments" },
+  { id: "schedule", label: "Schedule" },
 ];
 
 export function LandTabs({

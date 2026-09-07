@@ -15,34 +15,28 @@ export default async function CredentialsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/settings" className="text-[13px] font-medium text-[var(--accent)]">
-          ← Ajustes
+        <Link href="/settings" className="ios-back">
+          ‹ Settings
         </Link>
-        <h1 className="mt-2 ios-large-title">Credenciales</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          API read-only cifradas. Nunca se muestran en claro. El sync de Binance
-          importa el historial Spot de las criptos del catálogo.
-        </p>
+        <h1 className="mt-2 ios-large-title">API keys</h1>
       </div>
       <div className="ios-group p-4">
         <CredentialForm />
       </div>
       <ul className="ios-group">
         {rows.length === 0 && (
-          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
-            Ninguna credencial todavía
-          </li>
+          <li className="px-4 py-6 text-[15px] text-[var(--muted)]">None yet</li>
         )}
         {rows.map((c) => (
           <li key={c.id} className="ios-row">
             <div>
               <p className="ios-headline">{c.label}</p>
               <p className="text-[13px] text-[var(--muted)]">
-                {c.provider} · {c.lastVerificationStatus ?? "sin verificar"}
+                {c.provider} · {c.lastVerificationStatus ?? "unchecked"}
               </p>
             </div>
             <span className="text-[13px] text-[var(--muted-2)]">
-              {c.active ? "Activa" : "Revocada"}
+              {c.active ? "On" : "Revoked"}
             </span>
           </li>
         ))}

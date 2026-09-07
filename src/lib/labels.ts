@@ -1,31 +1,31 @@
 import type { AssetClass, LandStatus, TransactionType } from "@/lib/db/schema";
 
 export const CLASS_LABELS: Record<AssetClass, string> = {
-  crypto: "Cripto",
-  stock: "Acciones",
-  stable: "Estables",
-  land: "Terrenos",
+  crypto: "Crypto",
+  stock: "Stocks",
+  stable: "Stables",
+  land: "Lots",
   cash: "Cash",
 };
 
 export const TX_TYPE_LABELS: Record<TransactionType, string> = {
-  buy: "Compra",
-  sell: "Venta",
-  transfer_in: "Entrada",
-  transfer_out: "Salida",
+  buy: "Buy",
+  sell: "Sell",
+  transfer_in: "In",
+  transfer_out: "Out",
   reward: "Earn",
-  dividend: "Dividendo",
+  dividend: "Dividend",
   fee: "Fee",
-  tax: "Impuesto",
-  adjustment: "Ajuste",
+  tax: "Tax",
+  adjustment: "Adjust",
 };
 
 export const LAND_STATUS_LABELS: Record<LandStatus, string> = {
-  reserved: "Reservado",
-  signed: "Firmado",
-  paying: "En cuotas",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
+  reserved: "Reserved",
+  signed: "Signed",
+  paying: "Paying",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 export function classLabel(value: string): string {

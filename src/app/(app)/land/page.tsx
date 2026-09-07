@@ -14,7 +14,7 @@ export default async function LandPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="ios-large-title">Terrenos</h1>
+          <h1 className="ios-large-title">Lots</h1>
           <p className="mt-1 text-[15px] text-[var(--muted)]">
             Berchatti · Urubó
           </p>
@@ -24,7 +24,7 @@ export default async function LandPage() {
             href={`/pagos/nuevo?lote=${lots[0].asset.id}`}
             className="ios-pressable inline-flex h-8 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-semibold text-[var(--accent-fg)]"
           >
-            Pago
+            Pay
           </Link>
         )}
       </div>
@@ -32,7 +32,7 @@ export default async function LandPage() {
       <ul className="space-y-3">
         {lots.length === 0 && (
           <li className="px-4 py-8 text-center text-[15px] text-[var(--muted)]">
-            Sin lotes. Ejecuta el seed para cargar Berchatti.
+            No lots.
           </li>
         )}
         {lots.map((lot) => (
@@ -60,7 +60,7 @@ export default async function LandPage() {
                 <Progress value={lot.paidPct} />
                 <div className="flex items-baseline justify-between text-[13px]">
                   <span className="text-[var(--muted)]">
-                    {lot.paidPct.toFixed(1)}% pagado
+                    {lot.paidPct.toFixed(1)}% paid
                   </span>
                   <span className="money text-[var(--ink-soft)]">
                     {formatMoney(lot.paidUsd, "USD")}

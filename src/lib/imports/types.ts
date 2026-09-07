@@ -83,13 +83,13 @@ export function assertTrade(trade: ParsedTrade, line: number): void {
     throw new ImportParseError("Falta importRef (idempotencia)", line);
   }
   if (!isIsoDate(trade.date)) {
-    throw new ImportParseError(`Fecha inválida: ${trade.date}`, line);
+    throw new ImportParseError(`Invalid date: ${trade.date}`, line);
   }
   if (!trade.symbol?.trim()) {
-    throw new ImportParseError("Símbolo vacío", line);
+    throw new ImportParseError("Empty symbol", line);
   }
   if (!isFinitePositive(trade.quantity)) {
-    throw new ImportParseError(`Cantidad inválida: ${trade.quantity}`, line);
+    throw new ImportParseError(`Invalid quantity: ${trade.quantity}`, line);
   }
   if (
     !(
@@ -98,7 +98,7 @@ export function assertTrade(trade: ParsedTrade, line: number): void {
       trade.unitPrice >= 0
     )
   ) {
-    throw new ImportParseError(`Precio inválido: ${trade.unitPrice}`, line);
+    throw new ImportParseError(`Invalid price: ${trade.unitPrice}`, line);
   }
   if (
     !(
@@ -107,6 +107,6 @@ export function assertTrade(trade: ParsedTrade, line: number): void {
       trade.fxRate > 0
     )
   ) {
-    throw new ImportParseError(`FX inválido: ${trade.fxRate}`, line);
+    throw new ImportParseError(`Invalid FX: ${trade.fxRate}`, line);
   }
 }

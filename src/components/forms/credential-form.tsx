@@ -43,7 +43,7 @@ export function CredentialForm() {
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="label">Nombre</Label>
+        <Label htmlFor="label">Label</Label>
         <Input id="label" name="label" required placeholder="Binance Personal" />
       </div>
       <div className="space-y-2">
@@ -60,16 +60,16 @@ export function CredentialForm() {
       </div>
       {provider === "ibkr_flex" && (
         <div className="space-y-2">
-          <Label htmlFor="flexQueryId">Query ID (si va aparte)</Label>
+          <Label htmlFor="flexQueryId">Query ID</Label>
           <Input id="flexQueryId" name="flexQueryId" />
         </div>
       )}
       <p className="text-[13px] text-[var(--muted)]">
-        Solo permisos de lectura. Se guarda cifrado con AUTH_SECRET.
+        Read-only. Encrypted with AUTH_SECRET.
       </p>
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Guardando…" : "Guardar credencial"}
+        {pending ? "Saving…" : "Save"}
       </Button>
     </form>
   );

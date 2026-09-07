@@ -21,7 +21,7 @@ export function CaptureSnapshotButton() {
         })
       }
     >
-      {pending ? "Capturando…" : "Capturar"}
+      {pending ? "Capturing…" : "Capture"}
     </Button>
   );
 }

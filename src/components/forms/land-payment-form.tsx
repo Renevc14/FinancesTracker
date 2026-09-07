@@ -10,13 +10,13 @@ import { landConcepts } from "@/lib/db/schema";
 import { formatMoney, localISODate } from "@/lib/utils";
 
 const CONCEPT_LABELS: Record<string, string> = {
-  reservation: "Reserva",
-  initial: "Inicial",
-  installment: "Cuota",
-  balloon: "Globo",
-  tax: "IT / Impuesto",
-  notary: "Formalización",
-  other: "Otro",
+  reservation: "Reservation",
+  initial: "Down payment",
+  installment: "Installment",
+  balloon: "Balloon",
+  tax: "IT",
+  notary: "Notary",
+  other: "Other",
 };
 
 export function LandPaymentForm({
@@ -79,7 +79,7 @@ export function LandPaymentForm({
       }}
     >
       <div className="space-y-2">
-        <Label htmlFor="landAssetId">Lote</Label>
+        <Label htmlFor="landAssetId">Lot</Label>
         <Select
           id="landAssetId"
           name="landAssetId"
@@ -87,7 +87,7 @@ export function LandPaymentForm({
           defaultValue={defaultLandId ?? ""}
         >
           <option value="" disabled>
-            Seleccionar…
+            Choose…
           </option>
           {lands.map((l) => (
             <option key={l.id} value={l.id}>
@@ -99,7 +99,7 @@ export function LandPaymentForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="concept">Concepto</Label>
+          <Label htmlFor="concept">Type</Label>
           <Select
             id="concept"
             name="concept"
@@ -114,7 +114,7 @@ export function LandPaymentForm({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="date">Fecha</Label>
+          <Label htmlFor="date">Date</Label>
           <Input
             id="date"
             name="date"
@@ -128,7 +128,7 @@ export function LandPaymentForm({
 
       {concept === "installment" && (
         <div className="space-y-2">
-          <Label htmlFor="installmentNumber">Número de cuota</Label>
+          <Label htmlFor="installmentNumber">#</Label>
           <Input
             id="installmentNumber"
             name="installmentNumber"
@@ -141,7 +141,7 @@ export function LandPaymentForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="amountLocal">Monto pagado</Label>
+          <Label htmlFor="amountLocal">Amount</Label>
           <Input
             id="amountLocal"
             name="amountLocal"
@@ -153,7 +153,7 @@ export function LandPaymentForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="localCurrency">Moneda</Label>
+          <Label htmlFor="localCurrency">Currency</Label>
           <Select id="localCurrency" name="localCurrency" defaultValue="BOB">
             <option value="BOB">BOB</option>
             <option value="USD">USD</option>
@@ -171,12 +171,12 @@ export function LandPaymentForm({
             if (!e.target.checked) setDiscount("");
           }}
         />
-        Registrar descuento
+        Discount
       </label>
 
       {withDiscount && (
         <div className="space-y-2">
-          <Label htmlFor="discountLocal">Descuento (Bs)</Label>
+          <Label htmlFor="discountLocal">Discount (Bs)</Label>
           <Input
             id="discountLocal"
             name="discountLocal"
@@ -188,13 +188,13 @@ export function LandPaymentForm({
             placeholder="0"
           />
           <p className="text-[13px] text-[var(--muted)]">
-            Se acredita al lote además de lo pagado. No sale de caja.
+            Credited to the lot. Not cash out.
           </p>
         </div>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="fxRate">FX del día (Bs por USD)</Label>
+        <Label htmlFor="fxRate">Bs / USD</Label>
         <Input
           id="fxRate"
           name="fxRate"
@@ -208,20 +208,20 @@ export function LandPaymentForm({
 
       <div className="rounded-[var(--radius)] bg-[var(--surface-2)] px-3 py-2 text-[15px]">
         <p>
-          Sale de caja:{" "}
+          Cash out:{" "}
           <span className="money font-semibold">
             {formatMoney(amountUsd, "USD")}
           </span>
         </p>
         {discountLocal > 0 && (
           <p className="mt-1 text-[13px] text-[var(--muted)]">
-            Acreditado al lote: {formatMoney(credited, currency)}
+            Lot credit: {formatMoney(credited, currency)}
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="paymentMethod">Método</Label>
+        <Label htmlFor="paymentMethod">Method</Label>
         <Select
           id="paymentMethod"
           name="paymentMethod"
@@ -236,7 +236,7 @@ export function LandPaymentForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="receipt">Comprobante (opcional)</Label>
+        <Label htmlFor="receipt">Receipt</Label>
         <input
           id="receipt"
           name="receipt"
@@ -248,20 +248,20 @@ export function LandPaymentForm({
           }
         />
         <p className="text-[13px] text-[var(--muted)]">
-          Imagen o PDF, hasta 12 MB.
+          Image or PDF, 12 MB max.
           {fileName ? ` · ${fileName}` : ""}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notas</Label>
+        <Label htmlFor="notes">Notes</Label>
         <Textarea id="notes" name="notes" rows={2} />
       </div>
 
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Guardando…" : "Registrar pago"}
+        {pending ? "Saving…" : "Save"}
       </Button>
     </form>
   );

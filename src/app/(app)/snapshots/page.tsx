@@ -12,10 +12,10 @@ export default async function SnapshotsPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="ios-large-title">Fotos</h1>
-          <p className="mt-1 text-[15px] text-[var(--muted)]">
-            Cierre mensual del patrimonio
-          </p>
+          <Link href="/settings" className="ios-back">
+            ‹ Settings
+          </Link>
+          <h1 className="mt-2 ios-large-title">Snapshots</h1>
         </div>
         <CaptureSnapshotButton />
       </div>
@@ -23,7 +23,7 @@ export default async function SnapshotsPage() {
       <ul className="ios-group">
         {snaps.length === 0 && (
           <li className="px-4 py-8 text-center text-[15px] text-[var(--muted)]">
-            Aún no hay snapshots. Captura el primero.
+            None yet
           </li>
         )}
         {snaps.map((s, i) => {
@@ -42,7 +42,7 @@ export default async function SnapshotsPage() {
                 <div className="min-w-0">
                   <p className="ios-headline">{formatDate(s.snapshotDate)}</p>
                   <p className="text-[13px] text-[var(--muted)]">
-                    Invertido {formatMoney(s.totalInvestedUsd, "USD")}
+                    Cost {formatMoney(s.totalInvestedUsd, "USD")}
                   </p>
                 </div>
                 <div className="text-right">

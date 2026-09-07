@@ -164,6 +164,8 @@ async function main() {
   await db.delete(schema.priceSnapshots);
   await db.delete(schema.fxRates);
   await db.delete(schema.assets);
+  await db.delete(schema.incomeMonths);
+  await db.delete(schema.personalLoans);
   await db.delete(schema.userConfig);
 
   await db.insert(schema.userConfig).values({
@@ -172,10 +174,21 @@ async function main() {
     fireTargetAmount: 1_000_000,
     fireExpectedReturn: 0.07,
     fireExpectedContribution: 2000,
+    monthlySalaryUsd: 2060,
     eurUsdThreshold: 50_000,
     timezone: "America/La_Paz",
     notificationPreferences: {},
   });
+
+  await db.insert(schema.incomeMonths).values([
+    { yearMonth: "2026-02", amountUsd: 1020, source: "invoice", notes: "INV-006" },
+    { yearMonth: "2026-03", amountUsd: 884, source: "invoice", notes: "INV-007" },
+    { yearMonth: "2026-04", amountUsd: 1498, source: "invoice", notes: "INV-008" },
+    { yearMonth: "2026-05", amountUsd: 2060, source: "invoice", notes: "INV-009" },
+    { yearMonth: "2026-06", amountUsd: 2060, source: "invoice", notes: "INV-010" },
+    { yearMonth: "2026-07", amountUsd: 2060, source: "invoice", notes: "INV-011" },
+    { yearMonth: "2026-08", amountUsd: 2060, source: "invoice", notes: "INV-012" },
+  ]);
 
   const today = new Date().toISOString().slice(0, 10);
   const bobPerUsd = 12.3;
@@ -402,6 +415,53 @@ async function main() {
       amountUsd: 348 / bobPerUsd,
       paymentMethod: "USDT/P2P",
       notes: reservaNotes,
+    },
+  ]);
+
+  await db.insert(schema.personalLoans).values([
+    {
+      id: "pl-ruben",
+      counterparty: "Ruben",
+      direction: "lent",
+      amount: 70,
+      currency: "BOB",
+      amountUsd: 70 / bobPerUsd,
+      fxRate: bobPerUsd,
+      date: "2026-02-01",
+      status: "open",
+    },
+    {
+      id: "pl-diego",
+      counterparty: "Diego",
+      direction: "lent",
+      amount: 110,
+      currency: "BOB",
+      amountUsd: 110 / bobPerUsd,
+      fxRate: bobPerUsd,
+      date: "2026-02-01",
+      status: "open",
+    },
+    {
+      id: "pl-padre",
+      counterparty: "Padre",
+      direction: "lent",
+      amount: 4410,
+      currency: "USD",
+      amountUsd: 4410,
+      fxRate: 1,
+      date: "2026-02-01",
+      status: "open",
+    },
+    {
+      id: "pl-rubi",
+      counterparty: "Hermana Rubí",
+      direction: "lent",
+      amount: 82,
+      currency: "USD",
+      amountUsd: 82,
+      fxRate: 1,
+      date: "2026-02-01",
+      status: "open",
     },
   ]);
 

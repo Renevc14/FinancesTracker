@@ -62,3 +62,11 @@ export const fxRateFormSchema = z.object({
   rate: z.coerce.number().positive(),
   source: z.enum(["manual", "api_exchangerate", "paralelo_manual"]).default("manual"),
 });
+
+export const personalLoanFormSchema = z.object({
+  counterparty: z.string().min(1).max(80),
+  amount: z.coerce.number().positive(),
+  currency: z.enum(["USD", "BOB", "EUR"]),
+  date: z.string().min(1),
+  notes: z.string().optional(),
+});

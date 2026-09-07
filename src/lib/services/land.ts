@@ -55,7 +55,7 @@ export function buildSchedule(
 
   if (plan.initialDate) {
     items.push({
-      label: "Inicial",
+      label: "Down payment",
       concept: "initial",
       dueDate: plan.initialDate,
       amountLocal:
@@ -87,7 +87,7 @@ export function buildSchedule(
       const dueDate = addMonths(first, i - 1);
       const paid = paidInstallments.has(i);
       items.push({
-        label: `Cuota ${i}`,
+        label: `Installment ${i}`,
         concept: "installment",
         dueDate,
         amountLocal: plan.installmentAmountLocal,
@@ -112,7 +112,7 @@ export function buildSchedule(
           ? addMonths(first, plan.installmentsCount)
           : today);
     items.push({
-      label: "Globo",
+      label: "Balloon",
       concept: "balloon",
       dueDate: balloonDate,
       amountLocal: plan.balloonAmountLocal,
@@ -208,7 +208,7 @@ export async function createLandPayment(
     })
     .returning();
 
-  if (!row) throw new Error("No se pudo guardar el pago");
+  if (!row) throw new Error("Could not save payment");
 
   if (receipt && receipt.size > 0) {
     const invalid = assertReceiptFile(receipt);

@@ -22,23 +22,23 @@ export function BankAccountForm() {
         });
       }}
     >
-      <Label htmlFor="name">Nombre</Label>
-      <Input id="name" name="name" required placeholder="Caja de ahorro" />
-      <Label htmlFor="bank">Banco</Label>
+      <Label htmlFor="name">Name</Label>
+      <Input id="name" name="name" required placeholder="Checking" />
+      <Label htmlFor="bank">Bank</Label>
       <Input id="bank" name="bank" required placeholder="Banco Unión" />
-      <Label htmlFor="currency">Moneda</Label>
+      <Label htmlFor="currency">Currency</Label>
       <Select id="currency" name="currency" defaultValue="BOB">
         <option value="BOB">BOB</option>
         <option value="USD">USD</option>
         <option value="EUR">EUR</option>
       </Select>
-      <Label htmlFor="accountType">Tipo</Label>
+      <Label htmlFor="accountType">Type</Label>
       <Select id="accountType" name="accountType" defaultValue="checking">
-        <option value="checking">Corriente</option>
-        <option value="savings">Ahorro</option>
+        <option value="checking">Checking</option>
+        <option value="savings">Savings</option>
       </Select>
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Guardando…" : "Añadir cuenta"}
+        {pending ? "Saving…" : "Add"}
       </Button>
     </form>
   );
@@ -66,7 +66,7 @@ export function BankBalanceForm({ accountId }: { accountId: string }) {
         type="number"
         step="0.01"
         required
-        placeholder="Saldo"
+        placeholder="Balance"
       />
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "…" : "OK"}

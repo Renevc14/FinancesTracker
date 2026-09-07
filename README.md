@@ -166,7 +166,9 @@ npx tsx scripts/import-sheet-csv.ts <archivo.csv>
 | `/land` | Listado de lotes |
 | `/land/[id]` | Detalle (Estado / Contrato / Pagos / Cronograma) |
 | `/land/[id]/payments/new` | Nuevo pago de terreno |
-| `/snapshots` | Snapshots mensuales |
+| `/loans` | Préstamos hechos y deudas |
+| `/loans/new` | Registrar un préstamo |
+| `/snapshots` | Fotos mensuales (desde Ajustes) |
 | `/snapshots/[date]` | Detalle de snapshot |
 | `/settings` | Ajustes |
 | `/settings/assets` | Catálogo de activos |

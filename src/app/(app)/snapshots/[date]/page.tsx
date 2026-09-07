@@ -22,26 +22,26 @@ export default async function SnapshotDetailPage({
     <div className="space-y-6">
       <div>
         <Link href="/snapshots" className="ios-back">
-          ‹ Fotos
+          ‹ Snapshots
         </Link>
         <h1 className="ios-large-title">{formatDate(snap.snapshotDate)}</h1>
       </div>
 
       <section className="ios-group">
         <div className="grid grid-cols-2">
-          <Tile label="Invertido" value={formatMoney(snap.totalInvestedUsd, "USD")} />
+          <Tile label="Cost" value={formatMoney(snap.totalInvestedUsd, "USD")} />
           <Tile
-            label="Valor"
+            label="Value"
             value={formatMoney(snap.totalMarketValueUsd, "USD")}
             border
           />
           <Tile
-            label="Terrenos"
+            label="Lots"
             value={formatMoney(snap.landPaidUsd, "USD")}
             top
           />
           <Tile
-            label="Aporte del mes"
+            label="Month in"
             value={formatMoney(snap.monthlyContributionUsd, "USD")}
             border
             top
@@ -50,7 +50,7 @@ export default async function SnapshotDetailPage({
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Por clase</p>
+        <p className="ios-section-label">By class</p>
         <ul className="ios-group">
           {byClass.map(([cls, v]) => (
             <li key={cls} className="ios-row">
@@ -64,7 +64,7 @@ export default async function SnapshotDetailPage({
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Por activo</p>
+        <p className="ios-section-label">By asset</p>
         <ul className="ios-group">
           {byAsset.map((a) => (
             <li key={a.ticker} className="ios-row">

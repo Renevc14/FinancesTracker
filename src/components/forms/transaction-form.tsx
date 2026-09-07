@@ -58,10 +58,10 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
       }}
     >
       <div className="space-y-2">
-        <Label htmlFor="assetId">Activo</Label>
+        <Label htmlFor="assetId">Asset</Label>
         <Select id="assetId" name="assetId" required defaultValue="">
           <option value="" disabled>
-            Seleccionar…
+            Choose…
           </option>
           {assets
             .filter((a) => a.class !== "land")
@@ -75,7 +75,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="type">Tipo</Label>
+          <Label htmlFor="type">Type</Label>
           <Select id="type" name="type" defaultValue="buy">
             {transactionTypes.map((t) => (
               <option key={t} value={t}>
@@ -85,7 +85,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="date">Fecha</Label>
+          <Label htmlFor="date">Date</Label>
           <Input
             id="date"
             name="date"
@@ -99,7 +99,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="quantity">Cantidad</Label>
+          <Label htmlFor="quantity">Qty</Label>
           <Input
             id="quantity"
             name="quantity"
@@ -113,7 +113,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unitPrice">Precio unitario</Label>
+          <Label htmlFor="unitPrice">Price</Label>
           <Input
             id="unitPrice"
             name="unitPrice"
@@ -130,7 +130,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
 
       <div className={currency === "USD" ? "space-y-2" : "grid grid-cols-2 gap-3"}>
         <div className="space-y-2">
-          <Label htmlFor="priceCurrency">Moneda</Label>
+          <Label htmlFor="priceCurrency">Currency</Label>
           <Select
             id="priceCurrency"
             name="priceCurrency"
@@ -169,25 +169,25 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="platform">Plataforma</Label>
+        <Label htmlFor="platform">Venue</Label>
         <Select id="platform" name="platform" defaultValue="Binance">
           <option>Binance</option>
           <option>IBKR</option>
           <option>Meru</option>
           <option>Manual</option>
-          <option>Otro</option>
+          <option>Other</option>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notas</Label>
+        <Label htmlFor="notes">Notes</Label>
         <Textarea id="notes" name="notes" rows={2} />
       </div>
 
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Guardando…" : "Registrar transacción"}
+        {pending ? "Saving…" : "Save"}
       </Button>
     </form>
   );

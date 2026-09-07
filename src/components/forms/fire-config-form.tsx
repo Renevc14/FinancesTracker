@@ -31,7 +31,7 @@ export function FireConfigForm({
         });
       }}
     >
-      <Label htmlFor="fireTargetAmount">Meta USD</Label>
+      <Label htmlFor="fireTargetAmount">Target USD</Label>
       <Input
         id="fireTargetAmount"
         name="fireTargetAmount"
@@ -39,14 +39,14 @@ export function FireConfigForm({
         defaultValue={target}
         required
       />
-      <Label htmlFor="fireExpectedContribution">Aporte mensual USD</Label>
+      <Label htmlFor="fireExpectedContribution">Monthly USD</Label>
       <Input
         id="fireExpectedContribution"
         name="fireExpectedContribution"
         type="number"
         defaultValue={monthly}
       />
-      <Label htmlFor="fireExpectedReturn">Retorno anual (0.07 = 7%)</Label>
+      <Label htmlFor="fireExpectedReturn">Annual return (0.07 = 7%)</Label>
       <Input
         id="fireExpectedReturn"
         name="fireExpectedReturn"
@@ -54,7 +54,7 @@ export function FireConfigForm({
         step="0.001"
         defaultValue={expectedReturn}
       />
-      <Label htmlFor="fireTargetDate">Fecha meta</Label>
+      <Label htmlFor="fireTargetDate">Target date</Label>
       <Input
         id="fireTargetDate"
         name="fireTargetDate"
@@ -62,7 +62,7 @@ export function FireConfigForm({
         defaultValue={targetDate ?? ""}
       />
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Guardando…" : "Guardar proyección"}
+        {pending ? "Saving…" : "Save"}
       </Button>
     </form>
   );

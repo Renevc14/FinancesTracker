@@ -10,13 +10,13 @@ import { formatDate, formatMoney } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 const CONCEPT_LABELS: Record<string, string> = {
-  reservation: "Reserva",
-  initial: "Inicial",
-  installment: "Cuota",
-  balloon: "Globo",
+  reservation: "Reservation",
+  initial: "Down payment",
+  installment: "Installment",
+  balloon: "Balloon",
   tax: "IT",
-  notary: "Formalización",
-  other: "Otro",
+  notary: "Notary",
+  other: "Other",
 };
 
 export default async function LandDetailPage({
@@ -49,21 +49,21 @@ export default async function LandDetailPage({
       <div className="ios-group">
         <div className="grid grid-cols-2">
           <Stat
-            label="Precio contrato"
+            label="Contract"
             value={formatMoney(lot.contract.priceLocal, "BOB")}
           />
           <Stat
-            label="Pagado"
+            label="Paid"
             value={formatMoney(lot.paidLocal, "BOB")}
             border
           />
           <Stat
-            label="Pagado USD"
+            label="Paid USD"
             value={formatMoney(lot.paidUsd, "USD")}
             top
           />
           <Stat
-            label="Saldo"
+            label="Balance"
             value={formatMoney(lot.remainingLocal, "BOB")}
             border
             top
@@ -75,7 +75,7 @@ export default async function LandDetailPage({
         href={`/pagos/nuevo?lote=${lot.asset.id}`}
         className="ios-pressable inline-flex h-12 w-full items-center justify-center rounded-[var(--radius)] bg-[var(--accent)] text-[17px] font-semibold text-[var(--accent-fg)]"
       >
-        Nuevo pago
+        Pay
       </Link>
     </section>
   );
@@ -83,22 +83,22 @@ export default async function LandDetailPage({
   const contractPanel = (
     <section className="space-y-3">
       <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-        <Item label="Vendedor" value={lot.contract.seller} />
+        <Item label="Seller" value={lot.contract.seller} />
         <Item label="Developer" value={lot.contract.developer ?? "—"} />
-        <Item label="Ubicación" value={lot.contract.location} />
-        <Item label="Matrícula" value={lot.contract.matricula} />
-        <Item label="Superficie" value={`${lot.contract.surfaceM2} m²`} />
-        <Item label="Firma" value={formatDate(lot.contract.signingDate)} />
+        <Item label="Location" value={lot.contract.location} />
+        <Item label="Title" value={lot.contract.matricula} />
+        <Item label="Area" value={`${lot.contract.surfaceM2} m²`} />
+        <Item label="Signed" value={formatDate(lot.contract.signingDate)} />
         <Item
           label="Plan"
-          value={lot.contract.paymentPlan.code ?? "cuotas + globo"}
+          value={lot.contract.paymentPlan.code ?? "installments + balloon"}
         />
       </dl>
       {lot.contract.contractClauses &&
         Object.keys(lot.contract.contractClauses).length > 0 && (
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
-              Cláusulas clave
+              Key clauses
             </p>
             <ul className="space-y-2 text-sm">
               {Object.entries(lot.contract.contractClauses).map(([k, v]) => (
@@ -130,7 +130,7 @@ export default async function LandDetailPage({
       <ul className="ios-group">
         {lot.payments.length === 0 && (
           <li className="px-4 py-6 text-sm text-[var(--muted)]">
-            Sin pagos registrados
+            No payments
           </li>
         )}
         {lot.payments.map((p) => (
@@ -156,7 +156,7 @@ export default async function LandDetailPage({
                       rel="noreferrer"
                       className="font-medium text-[var(--accent)]"
                     >
-                      {p.receiptName ?? "Comprobante"}
+                      {p.receiptName ?? "Receipt"}
                     </a>
                   </>
                 ) : null}
@@ -168,7 +168,7 @@ export default async function LandDetailPage({
               </p>
               {(p.discountLocal ?? 0) > 0 && (
                 <p className="text-[12px] text-[var(--warn)]">
-                  Desc. {formatMoney(p.discountLocal, p.localCurrency)}
+                  Disc. {formatMoney(p.discountLocal, p.localCurrency)}
                 </p>
               )}
               <p className="text-[13px] text-[var(--muted)]">
@@ -185,7 +185,7 @@ export default async function LandDetailPage({
     <section className="space-y-3">
       {overdue.length > 0 && (
         <p className="text-sm text-[var(--danger)]">
-          {overdue.length} pago(s) en mora
+          {overdue.length} overdue
         </p>
       )}
       <ul className="ios-group">
@@ -210,7 +210,7 @@ export default async function LandDetailPage({
         ))}
         {overdue.length === 0 && upcoming.length === 0 && (
           <li className="px-4 py-6 text-[15px] text-[var(--muted)]">
-            Sin cuotas pendientes en el cronograma
+            No upcoming installments
           </li>
         )}
       </ul>
@@ -221,7 +221,7 @@ export default async function LandDetailPage({
     <div className="space-y-6">
       <div>
         <Link href="/land" className="ios-back">
-          ‹ Terrenos
+          ‹ Lots
         </Link>
         <h1 className="ios-large-title">{lot.asset.ticker}</h1>
         <p className="mt-1 text-[15px] text-[var(--muted)]">{lot.asset.name}</p>
@@ -283,12 +283,12 @@ function StatusPill({ status }: { status: string }) {
           : "text-[var(--muted)]";
   const label =
     status === "paid"
-      ? "Pagado"
+      ? "Paid"
       : status === "overdue"
-        ? "Mora"
+        ? "Overdue"
         : status === "due"
-          ? "Hoy"
-          : "Próximo";
+          ? "Due"
+          : "Next";
   return (
     <p className={`text-[11px] font-semibold ${color}`}>{label}</p>
   );

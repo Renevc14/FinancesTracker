@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   assets,
@@ -295,6 +295,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
 
   const grossMarketValueUsd = financialValue + landPaidUsd + cashUsd;
   const totalInvestedUsd = financialInvested + landPaidUsd + cashUsd;
+  // Personal loans (money lent to others) stay off-balance and never enter NAV.
   const totalMarketValueUsd = grossMarketValueUsd - debtUsd;
   const pnlUsd = financialValue - financialInvested;
   const pnlPct =
@@ -330,7 +331,9 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     })
     .from(transactions)
     .innerJoin(assets, eq(transactions.assetId, assets.id))
-    .where(isNull(transactions.deletedAt))
+    .where(
+      and(isNull(transactions.deletedAt), ne(transactions.type, "reward")),
+    )
     .orderBy(desc(transactions.date), desc(transactions.createdAt))
     .limit(8);
 
@@ -402,7 +405,7 @@ const WALLET_LABEL: Record<WalletSlice["key"], string> = {
   spot: "Spot",
   earn: "Earn",
   funding: "Funding",
-  collateral: "Colateral",
+  collateral: "Collateral",
 };
 
 function walletSlices(
@@ -428,7 +431,7 @@ function walletSlices(
       kind: wallet.collateral > 1e-12 ? "pledge" : "balance",
       hint:
         wallet.collateral > 1e-12
-          ? "Incluye garantía del préstamo"
+          ? "Includes loan collateral"
           : undefined,
     });
   }

@@ -35,6 +35,6 @@ export function isoDateFromUnknown(value: string): string {
     return `${slash[3]}-${slash[1]!.padStart(2, "0")}-${slash[2]!.padStart(2, "0")}`;
   }
   const t = Date.parse(value);
-  if (Number.isNaN(t)) throw new Error(`Fecha inválida: ${value}`);
+  if (Number.isNaN(t)) throw new Error(`Invalid date: ${value}`);
   return new Date(t).toISOString().slice(0, 10);
 }

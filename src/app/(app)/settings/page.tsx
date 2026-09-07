@@ -12,36 +12,29 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="ios-large-title">Ajustes</h1>
-        <p className="mt-1 text-[15px] text-[var(--muted)]">
-          Configuración del tracker
-        </p>
-      </div>
-
       <section className="space-y-2">
         <p className="ios-section-label">General</p>
         <dl className="ios-group">
           <div className="ios-row">
-            <dt className="text-[17px]">Moneda</dt>
+            <dt className="text-[17px]">Currency</dt>
             <dd className="money text-[17px] text-[var(--muted)]">
               {config?.displayCurrency ?? "USD"}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[17px]">Zona horaria</dt>
+            <dt className="text-[17px]">Time zone</dt>
             <dd className="text-[17px] text-[var(--muted)]">
               {config?.timezone ?? "America/La_Paz"}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[17px]">Umbral Modelo 720</dt>
+            <dt className="text-[17px]">Modelo 720</dt>
             <dd className="money text-[17px] text-[var(--muted)]">
-              €{(config?.eurUsdThreshold ?? 50000).toLocaleString("es-ES")}
+              €{(config?.eurUsdThreshold ?? 50000).toLocaleString("en-US")}
             </dd>
           </div>
           <div className="ios-row">
-            <dt className="text-[17px]">Modo noche</dt>
+            <dt className="text-[17px]">Dark mode</dt>
             <dd>
               <ThemeToggle current={parseTheme(config?.theme)} />
             </dd>
@@ -50,18 +43,16 @@ export default async function SettingsPage() {
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Catálogos</p>
+        <p className="ios-section-label">Catalog</p>
         <ul className="ios-group">
-          <SettingsLink href="/settings/assets" label="Activos" />
-          <SettingsLink href="/settings/fx" label="Tipos de cambio" />
-          <SettingsLink
-            href="/settings/credentials"
-            label="API keys"
-          />
-          <SettingsLink href="/settings/banks" label="Cuentas bancarias" />
+          <SettingsLink href="/settings/income" label="Salary" />
+          <SettingsLink href="/settings/assets" label="Assets" />
+          <SettingsLink href="/settings/fx" label="FX" />
+          <SettingsLink href="/settings/credentials" label="API keys" />
+          <SettingsLink href="/settings/banks" label="Banks" />
           <li>
             <a href="/api/backup" className="ios-row ios-pressable">
-              <span className="text-[17px]">Backup JSON</span>
+              <span className="text-[17px]">Backup</span>
               <Chevron />
             </a>
           </li>
@@ -69,17 +60,18 @@ export default async function SettingsPage() {
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Planificación</p>
+        <p className="ios-section-label">Planning</p>
         <ul className="ios-group">
-          <SettingsLink href="/sync" label="Sync y salud de APIs" />
-          <SettingsLink href="/reconciliation" label="Reconciliación" />
+          <SettingsLink href="/snapshots" label="Snapshots" />
+          <SettingsLink href="/sync" label="Sync" />
+          <SettingsLink href="/reconciliation" label="Reconciliation" />
           <SettingsLink href="/fire" label="FIRE" />
           <SettingsLink href="/compliance" label="Modelo 720/721" />
         </ul>
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Sesión</p>
+        <p className="ios-section-label">Session</p>
         <form
           action={async () => {
             "use server";
@@ -92,7 +84,7 @@ export default async function SettingsPage() {
                 type="submit"
                 className="ios-row ios-pressable w-full text-left text-[17px] text-[var(--danger)]"
               >
-                Cerrar sesión
+                Sign out
               </button>
             </li>
           </ul>

@@ -17,12 +17,12 @@ export async function loginAction(
   const callbackUrl = String(formData.get("callbackUrl") ?? "/dashboard");
 
   if (!username || !password) {
-    return { error: "Completa usuario y contraseña" };
+    return { error: "Username and password required" };
   }
 
   const { totpIsConfigured, verifyTotp } = await import("@/lib/crypto/totp");
   if (totpIsConfigured() && !verifyTotp(totp)) {
-    return { error: "Código 2FA incorrecto" };
+    return { error: "Invalid 2FA code" };
   }
 
   try {
@@ -34,7 +34,7 @@ export async function loginAction(
     return {};
   } catch (err) {
     if (err instanceof AuthError) {
-      return { error: "Usuario o contraseña incorrectos" };
+      return { error: "Wrong username or password" };
     }
     // Next.js redirect throws; rethrow so navigation happens
     throw err;

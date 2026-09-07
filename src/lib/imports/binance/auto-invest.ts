@@ -24,7 +24,7 @@ export function parseBinanceAutoInvestCsv(csv: string): ImportPreview {
       totalRows: 0,
       parsed: [],
       duplicates: [],
-      errors: [{ line: 0, message: "CSV Auto-Invest vacío" }],
+      errors: [{ line: 0, message: "Empty Auto-Invest CSV" }],
     };
   }
 
@@ -88,7 +88,7 @@ export function parseBinanceAutoInvestCsv(csv: string): ImportPreview {
     } catch (err) {
       errors.push({
         line: lineNo,
-        message: err instanceof Error ? err.message : "Fila inválida",
+        message: err instanceof Error ? err.message : "Invalid row",
         raw: lines[i],
       });
     }

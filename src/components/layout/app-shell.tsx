@@ -6,20 +6,36 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   Landmark,
-  Camera,
+  HandCoins,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/lib/brand";
 import { CurrencyToggle } from "@/components/layout/currency-toggle";
 import type { DisplayCurrency } from "@/lib/db/schema";
 
 const links = [
-  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
-  { href: "/transactions", label: "Movimientos", icon: ArrowLeftRight },
-  { href: "/land", label: "Terrenos", icon: Landmark },
-  { href: "/snapshots", label: "Fotos", icon: Camera },
-  { href: "/settings", label: "Ajustes", icon: Settings },
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/transactions", label: "Activity", icon: ArrowLeftRight },
+  { href: "/land", label: "Lots", icon: Landmark },
+  { href: "/loans", label: "Loans", icon: HandCoins },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+const extraTitles: Array<{ prefix: string; label: string }> = [
+  { prefix: "/snapshots", label: "Snapshots" },
+  { prefix: "/pagos", label: "Lots" },
+  { prefix: "/sync", label: "Settings" },
+  { prefix: "/fire", label: "Settings" },
+  { prefix: "/compliance", label: "Settings" },
+  { prefix: "/reconciliation", label: "Settings" },
+];
+
+function pageTitle(pathname: string) {
+  const tab = links.find((l) => pathname.startsWith(l.href));
+  if (tab) return tab.label;
+  return extraTitles.find((t) => pathname.startsWith(t.prefix))?.label ?? APP_NAME;
+}
 
 export function AppShell({
   children,
@@ -29,8 +45,7 @@ export function AppShell({
   displayCurrency: DisplayCurrency;
 }) {
   const pathname = usePathname();
-  const title =
-    links.find((l) => pathname.startsWith(l.href))?.label ?? "Patrimonio";
+  const title = pageTitle(pathname);
 
   return (
     <div className="min-h-dvh bg-[var(--bg)] text-[var(--ink)]">
@@ -91,7 +106,7 @@ export function AppShell({
                     active ? "text-[var(--accent)]" : "text-[var(--muted)]",
                   )}
                 >
-                  <Icon size={24} strokeWidth={active ? 2.25 : 1.7} />
+                  <Icon size={24} strokeWidth={2} aria-hidden />
                   <span className="truncate">{l.label}</span>
                 </Link>
               </li>
