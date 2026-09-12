@@ -2,6 +2,11 @@ import { createClient, type Client } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  assertVercelUsesTurso,
+  databaseAuthToken,
+  databaseUrl,
+} from "./env";
 import * as schema from "./schema";
 
 export type AppDatabase = LibSQLDatabase<typeof schema>;
@@ -14,7 +19,8 @@ declare global {
 }
 
 function resolveDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL ?? "file:./data/portfolio.db";
+  const url = databaseUrl();
+  assertVercelUsesTurso(url);
   if (url.startsWith("file:")) {
     const filePath = url.replace(/^file:/, "");
     const absolute = path.isAbsolute(filePath)
@@ -32,7 +38,7 @@ function createDb(): AppDatabase {
     globalThis.__portfolioClient ??
     createClient({
       url,
-      authToken: process.env.DATABASE_AUTH_TOKEN,
+      authToken: databaseAuthToken(),
     });
 
   if (process.env.NODE_ENV !== "production") {

@@ -1,11 +1,19 @@
+import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
-import "dotenv/config";
+import {
+  databaseAuthToken,
+  databaseUrl,
+  isTursoUrl,
+} from "./src/lib/db/env";
+
+config({ path: ".env.local" });
+
+const url = databaseUrl();
+const authToken = databaseAuthToken();
 
 export default defineConfig({
   schema: "./src/lib/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
-  dbCredentials: {
-    url: process.env.DATABASE_URL ?? "file:./data/portfolio.db",
-  },
+  dialect: isTursoUrl(url) ? "turso" : "sqlite",
+  dbCredentials: authToken ? { url, authToken } : { url },
 });

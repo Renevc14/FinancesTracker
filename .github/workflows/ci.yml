@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: lint-build
+    runs-on: ubuntu-latest
+    env:
+      AUTH_SECRET: ci-only-placeholder-not-a-real-secret
+      AUTH_USERNAME: ci
+      AUTH_PASSWORD: ci-placeholder
+      AUTH_TRUST_HOST: "true"
+      DATABASE_URL: file:./data/ci.db
+      NEXT_PUBLIC_APP_NAME: Folio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

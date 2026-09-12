@@ -230,7 +230,9 @@ Punto de entrada: `src/lib/imports/`. UI: `/transactions/import`.
 
 Checklist Vercel + Turso: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-Config presente: `vercel.json` (framework Next.js, región `iad1`).
+- GitHub Actions: lint y build en PRs y `main` (`.github/workflows/ci.yml`)
+- Vercel despliega solo `main`; el cron diario llama `/api/cron/daily` a las 06:05 UTC
+- Producción usa Turso (`libsql://…`), no el SQLite local
 
 ---
 

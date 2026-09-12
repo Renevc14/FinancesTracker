@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:ensure": "tsx --env-file=.env.local scripts/ensure-fase2.ts",
+    "db:copy-to-turso": "tsx scripts/copy-local-db-to-turso.ts",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down"
   },

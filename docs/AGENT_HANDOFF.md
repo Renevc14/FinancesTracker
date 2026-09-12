@@ -64,7 +64,7 @@ Smoke:
 
 Priority backlog:
 
-1. Vercel + Turso production deploy
+1. Finish Vercel + Turso: import local DB, set production env, confirm daily cron
 2. Historial Binance depósitos-retiros (transferencias on-chain) completo
 3. Push notifications nativas (hoy hay aviso in-app de cuota)
 

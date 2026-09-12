@@ -1,7 +1,11 @@
+import { config } from "dotenv";
 import { createClient } from "@libsql/client";
+import { databaseAuthToken, databaseUrl } from "../src/lib/db/env";
 
-const url = process.env.DATABASE_URL ?? "file:./data/portfolio.db";
-const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
+config({ path: ".env.local" });
+
+const url = databaseUrl();
+const client = createClient({ url, authToken: databaseAuthToken() });
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS api_credentials (

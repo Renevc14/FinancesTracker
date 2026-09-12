@@ -1,13 +1,16 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import fs from "node:fs";
 import path from "node:path";
+import { databaseAuthToken, databaseUrl } from "../src/lib/db/env";
 import * as schema from "../src/lib/db/schema";
 import type { LandPaymentPlan } from "../src/lib/db/schema";
 
+config({ path: ".env.local" });
+
 function resolveUrl(): string {
-  const url = process.env.DATABASE_URL ?? "file:./data/portfolio.db";
+  const url = databaseUrl();
   if (url.startsWith("file:")) {
     const filePath = url.replace(/^file:/, "");
     const absolute = path.isAbsolute(filePath)
@@ -151,7 +154,7 @@ const EXCEL_TXS: Array<{
 async function main() {
   const client = createClient({
     url: resolveUrl(),
-    authToken: process.env.DATABASE_AUTH_TOKEN,
+    authToken: databaseAuthToken(),
   });
   const db = drizzle(client, { schema });
 

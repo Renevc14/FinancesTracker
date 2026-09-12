@@ -9,6 +9,8 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 
 ### Added
 
+- GitHub Actions CI (lint, build) and Vercel production config (Turso, daily cron, main-only deploys)
+
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local
 - Credenciales API cifradas, sync Binance, reconciliación, FIRE y umbral 720/721
