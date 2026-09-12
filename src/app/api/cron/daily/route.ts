@@ -30,6 +30,13 @@ export async function GET(request: Request) {
     console.error("[cron markets]", err);
   }
 
+  try {
+    const { fillHistoricalPrices } = await import("@/lib/services/history");
+    await fillHistoricalPrices();
+  } catch (err) {
+    console.error("[cron history]", err);
+  }
+
   const syncIds: string[] = [];
   for (const cred of creds) {
     try {

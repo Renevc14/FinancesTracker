@@ -64,7 +64,7 @@ async function fetchJson(url: string, timeoutMs = 8000): Promise<unknown> {
   return res.json();
 }
 
-async function fillHistoricalPrices(): Promise<void> {
+export async function fillHistoricalPrices(): Promise<void> {
   const catalog = await db
     .select()
     .from(assets)
@@ -149,7 +149,8 @@ export async function getPortfolioHistory(current: {
   valueUsd: number;
   investedUsd: number;
 }): Promise<NavHistoryPoint[]> {
-  await fillHistoricalPrices();
+  // Historical CoinGecko/Yahoo fills belong on cron / Prices — not on Home.
+  // A full backfill can exceed Vercel's serverless timeout and crash the tab.
 
   const catalog = await db
     .select()
