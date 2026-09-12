@@ -43,7 +43,7 @@ Land payment receipt **files** live under `/data/receipts` and do not upload wit
 2. Set Production env vars (see [ENVIRONMENT.md](./ENVIRONMENT.md)).
 3. Production `AUTH_URL` = `https://<project>.vercel.app` (or the custom domain).
 4. Set `CRON_SECRET` so `/api/cron/daily` only runs from Vercel Cron (06:05 UTC).
-5. Deploy from `main`. Each production build runs `drizzle-kit push --force` then `next build`.
+5. Deploy from `main`. The production build is `next build`. Schema changes to Turso are applied from your machine (`npm run db:push` with Turso env), not during the Vercel build.
 
 ### Post-deploy checklist
 
