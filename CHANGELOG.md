@@ -12,6 +12,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - GitHub Actions CI (lint, build) and Vercel production config (Turso, daily cron, main-only deploys)
 - Vercel build uses Turso env aliases and does not run `drizzle-kit push`
 - Home no longer backfills CoinGecko/Yahoo history on every load (avoids Vercel timeouts)
+- Home serializes Turso numbers for the client and surfaces the real error message
 
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local

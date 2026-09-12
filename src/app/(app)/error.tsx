@@ -17,6 +17,11 @@ export default function AppError({
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
       <p className="ios-title">Something went wrong</p>
+      {error.message ? (
+        <p className="max-w-sm text-[13px] leading-snug text-[var(--muted)]">
+          {error.message}
+        </p>
+      ) : null}
       <Button type="button" onClick={reset}>
         Retry
       </Button>

@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** LibSQL/Turso can return INTEGER as bigint; RSC also rejects NaN/Infinity. */
+export function serializeForClient<T>(value: T): T {
+  return JSON.parse(
+    JSON.stringify(value, (_key, item) => {
+      if (typeof item === "bigint") return Number(item);
+      if (typeof item === "number" && !Number.isFinite(item)) return 0;
+      return item;
+    }),
+  ) as T;
+}
+
 export function formatMoney(
   amount: number,
   currency: string = "USD",

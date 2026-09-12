@@ -27,9 +27,15 @@ export function databaseAuthToken(): string | undefined {
 }
 
 export function assertVercelUsesTurso(url: string): void {
-  if (process.env.VERCEL && !isTursoUrl(url)) {
+  if (!process.env.VERCEL) return;
+  if (!isTursoUrl(url)) {
     throw new Error(
-      "On Vercel, set DATABASE_URL (or TURSO_DATABASE_URL) to a libsql:// Turso URL.",
+      "On Vercel, set TURSO_DATABASE_URL or DATABASE_URL to a libsql:// Turso URL. Do not use file: SQLite.",
+    );
+  }
+  if (!databaseAuthToken()) {
+    throw new Error(
+      "On Vercel, set TURSO_AUTH_TOKEN or DATABASE_AUTH_TOKEN.",
     );
   }
 }

@@ -341,7 +341,9 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
   let nextLandPayment: DashboardKpis["nextLandPayment"] = null;
   for (const contract of contracts) {
     const asset = landAssets.find((a) => a.id === contract.landAssetId);
-    if (!asset || !contract.paymentPlan.firstInstallmentDate) continue;
+    const plan = contract.paymentPlan;
+    if (!asset || !plan || typeof plan !== "object" || !plan.firstInstallmentDate)
+      continue;
     const paidInstallments = payments.filter(
       (p) =>
         p.landAssetId === contract.landAssetId &&

@@ -14,17 +14,19 @@ import {
   convertFromUsd,
   getPortfolioDashboard,
 } from "@/lib/services/portfolio";
-import { formatDate, formatMoney, formatPct } from "@/lib/utils";
+import { formatDate, formatMoney, formatPct, serializeForClient } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const dash = await getPortfolioDashboard();
-  const history = await getPortfolioHistory({
-    valueUsd: dash.totalMarketValueUsd,
-    investedUsd: dash.totalInvestedUsd,
-  });
-  const savings = await getSavingsSummary();
+  const dash = serializeForClient(await getPortfolioDashboard());
+  const history = serializeForClient(
+    await getPortfolioHistory({
+      valueUsd: dash.totalMarketValueUsd,
+      investedUsd: dash.totalInvestedUsd,
+    }),
+  );
+  const savings = serializeForClient(await getSavingsSummary());
   const fx = dash.fxToDisplay;
   const cur = dash.displayCurrency;
   const money = (usd: number) => formatMoney(convertFromUsd(usd, fx), cur);
