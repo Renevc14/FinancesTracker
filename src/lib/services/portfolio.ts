@@ -342,8 +342,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
   for (const contract of contracts) {
     const asset = landAssets.find((a) => a.id === contract.landAssetId);
     const plan = contract.paymentPlan;
-    if (!asset || !plan || typeof plan !== "object" || !plan.firstInstallmentDate)
-      continue;
+    if (!asset || !plan?.firstInstallmentDate) continue;
     const paidInstallments = payments.filter(
       (p) =>
         p.landAssetId === contract.landAssetId &&

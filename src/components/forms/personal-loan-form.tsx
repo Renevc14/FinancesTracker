@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
@@ -11,11 +11,7 @@ export function PersonalLoanForm() {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [date, setDate] = useState("");
-
-  useEffect(() => {
-    setDate(localISODate());
-  }, []);
+  const [date, setDate] = useState(localISODate);
 
   return (
     <form

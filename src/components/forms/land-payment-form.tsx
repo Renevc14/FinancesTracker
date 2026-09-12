@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
@@ -37,11 +37,7 @@ export function LandPaymentForm({
   const [withDiscount, setWithDiscount] = useState(false);
   const [discount, setDiscount] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
-  const [date, setDate] = useState("");
-
-  useEffect(() => {
-    setDate(localISODate());
-  }, []);
+  const [date, setDate] = useState(localISODate);
 
   const amountLocal = Number(amount) || 0;
   const discountLocal = withDiscount ? Number(discount) || 0 : 0;

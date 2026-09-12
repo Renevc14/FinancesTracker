@@ -34,14 +34,18 @@ export function AllocationChart({
   }
 
   const money = (usd: number) => formatMoney(usd * fx, currency);
-  let cursor = 0;
   const gradient = chartData
-    .map((d) => {
-      const start = cursor;
-      cursor += d.weightPct;
-      return `${COLORS[d.class] ?? "#888"} ${start}% ${cursor}%`;
-    })
-    .join(", ");
+    .reduce<{ parts: string[]; at: number }>(
+      (acc, d) => ({
+        at: acc.at + d.weightPct,
+        parts: [
+          ...acc.parts,
+          `${COLORS[d.class] ?? "#888"} ${acc.at}% ${acc.at + d.weightPct}%`,
+        ],
+      }),
+      { parts: [], at: 0 },
+    )
+    .parts.join(", ");
 
   return (
     <div className="space-y-5">

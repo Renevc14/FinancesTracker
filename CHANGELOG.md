@@ -13,6 +13,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Vercel build uses Turso env aliases and does not run `drizzle-kit push`
 - Home no longer backfills CoinGecko/Yahoo history on every load (avoids Vercel timeouts)
 - Home serializes Turso numbers for the client and surfaces the real error message
+- Fix Vercel/CI lint (`setState` in effects) and allow `next build` without Turso at compile time
 
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local

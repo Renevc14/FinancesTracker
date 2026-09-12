@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
@@ -18,11 +18,7 @@ export function TransactionForm({ assets }: { assets: Asset[] }) {
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
   const [fx, setFx] = useState("1");
-  const [date, setDate] = useState("");
-
-  useEffect(() => {
-    setDate(localISODate());
-  }, []);
+  const [date, setDate] = useState(localISODate);
 
   const quantity = Number(qty) || 0;
   const unitPrice = Number(price) || 0;
