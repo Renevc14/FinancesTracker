@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AllocationChart } from "@/components/charts/allocation-chart";
+import { CostValueChart } from "@/components/charts/cost-value-chart";
 import { NavHistoryChart } from "@/components/charts/nav-history-chart";
 import { SavingsRateChart } from "@/components/charts/savings-rate-chart";
 import { RefreshMarketsButton } from "@/components/forms/refresh-markets-button";
@@ -68,6 +69,8 @@ export default async function DashboardPage() {
         <RefreshMarketsButton />
       </section>
 
+      <CostValueChart points={history} currency={cur} fx={fx} />
+
       <SavingsRateChart summary={savings} currency={cur} fx={fx} />
 
       <section className="ios-group">
@@ -111,6 +114,24 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Progress value={landPct} />
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[15px] text-[var(--ink-soft)]">Now</p>
+            <p className="money text-[15px] font-semibold">
+              {money(dash.landEquityUsd)}
+            </p>
+          </div>
+          {Math.abs(dash.landEquityUsd - dash.landPaidUsd) >= 0.5 && (
+            <p
+              className={`text-[13px] ${
+                dash.landEquityUsd >= dash.landPaidUsd
+                  ? "text-[var(--positive)]"
+                  : "text-[var(--negative)]"
+              }`}
+            >
+              {dash.landEquityUsd >= dash.landPaidUsd ? "+" : "−"}
+              {money(Math.abs(dash.landEquityUsd - dash.landPaidUsd))} vs paid
+            </p>
+          )}
           {dash.nextLandPayment && (
             <p className="text-[13px] leading-snug text-[var(--warn)]">
               Due {formatDate(dash.nextLandPayment.dueDate)} ·{" "}

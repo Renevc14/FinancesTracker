@@ -5,11 +5,14 @@ import {
   bankAccounts,
   bankBalanceSnapshots,
   cryptoLoans,
+  landContracts,
   landPayments,
   priceSnapshots,
   transactions,
 } from "@/lib/db/schema";
 import { PORTFOLIO_START_DATE } from "@/lib/exchanges/binance";
+import { getLatestFxRate } from "@/lib/services/fx";
+import { landEquityUsd } from "@/lib/services/land-value";
 import { upsertPriceSnapshot } from "@/lib/services/snapshot";
 import { localISODate } from "@/lib/utils";
 
@@ -171,6 +174,12 @@ export async function getPortfolioHistory(current: {
     .where(isNull(landPayments.deletedAt));
   payments.sort((a, b) => a.date.localeCompare(b.date));
 
+  const contracts = await db
+    .select()
+    .from(landContracts)
+    .where(isNull(landContracts.deletedAt));
+  const bobPerUsd = (await getLatestFxRate("USD", "BOB")) ?? 12.3;
+
   const prices = await db.select().from(priceSnapshots);
   const priceMap = new Map<string, Array<{ date: string; priceUsd: number }>>();
   for (const row of prices) {
@@ -265,9 +274,32 @@ export async function getPortfolioHistory(current: {
       financialValue += price != null ? q * price : inv;
     }
 
-    const landPaid = payments
-      .slice(0, payCursor)
-      .reduce((s, p) => s + p.amountUsd, 0);
+    const paidThrough = payments.slice(0, payCursor);
+    let landPaid = 0;
+    let landValue = 0;
+    for (const contract of contracts) {
+      const lotPays = paidThrough.filter(
+        (p) => p.landAssetId === contract.landAssetId,
+      );
+      const paidUsd = lotPays.reduce((s, p) => s + p.amountUsd, 0);
+      const paidLocal = lotPays.reduce(
+        (s, p) => s + p.amountLocal + (p.discountLocal ?? 0),
+        0,
+      );
+      landPaid += paidUsd;
+      const remainingUsd =
+        Math.max(0, contract.priceLocal - paidLocal) / (bobPerUsd || 1);
+      const listed = priceOnOrBefore(
+        priceMap.get(contract.landAssetId) ?? [],
+        day,
+      );
+      landValue += landEquityUsd({
+        paidUsd,
+        remainingUsd,
+        estimatedValueUsd:
+          listed != null ? listed * contract.surfaceM2 : null,
+      });
+    }
 
     let cashUsd = 0;
     for (const account of accounts) {
@@ -291,7 +323,7 @@ export async function getPortfolioHistory(current: {
       debtUsd += price != null ? loan.totalDebt * price : loan.totalDebt;
     }
 
-    const gross = financialValue + landPaid + cashUsd;
+    const gross = financialValue + landValue + cashUsd;
     const valueUsd = gross - debtUsd;
     const investedUsd = financialInvested + landPaid + cashUsd;
     if (points.length === 0 && valueUsd <= 0) continue;

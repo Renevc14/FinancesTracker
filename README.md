@@ -36,7 +36,7 @@ Tracker patrimonial **personal** (un solo usuario, no multi-tenant / no SaaS) pa
 - Auth single-user (credentials Auth.js v5) vía variables de entorno
 - Dashboard con KPIs, allocation chart y toggle de moneda (USD / EUR / BOB)
 - CRUD de transacciones financieras
-- Terrenos Berchatti: contratos, pagos, cronograma e estado (tabs)
+- Terrenos Berchatti: contratos, pagos, cronograma, Bs/m² actual vs contrato congelado
 - Snapshots patrimoniales mensuales (manuales)
 - Catálogo de activos + tipos de cambio (FX)
 - UI mobile-first estilo Apple HIG

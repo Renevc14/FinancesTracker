@@ -4,12 +4,21 @@ import {
   assets,
   landContracts,
   landPayments,
+  priceSnapshots,
   type LandContract,
   type LandPayment,
   type LandPaymentPlan,
 } from "@/lib/db/schema";
 import type { LandPaymentFormValues } from "@/lib/validators";
 import { saveReceiptFile, assertReceiptFile } from "@/lib/receipts";
+import { getLatestFxRate } from "@/lib/services/fx";
+import {
+  contractPricePerM2Local,
+  currentPricePerM2Local,
+  landEquityUsd,
+} from "@/lib/services/land-value";
+import { upsertPriceSnapshot } from "@/lib/services/snapshot";
+import { localISODate } from "@/lib/utils";
 
 export type LandLotDetail = {
   asset: typeof assets.$inferSelect;
@@ -20,6 +29,9 @@ export type LandLotDetail = {
   remainingLocal: number;
   remainingUsd: number;
   paidPct: number;
+  contractPricePerM2Local: number;
+  currentPricePerM2Local: number | null;
+  equityUsd: number;
   schedule: ScheduleItem[];
 };
 
@@ -134,6 +146,7 @@ export async function listLandLots(): Promise<LandLotDetail[]> {
     .select()
     .from(landContracts)
     .where(isNull(landContracts.deletedAt));
+  const latestBobPerUsd = (await getLatestFxRate("USD", "BOB")) ?? 12.3;
 
   const details: LandLotDetail[] = [];
   for (const contract of contracts) {
@@ -159,10 +172,23 @@ export async function listLandLots(): Promise<LandLotDetail[]> {
     );
     const paidUsd = payments.reduce((s, p) => s + p.amountUsd, 0);
     const remainingLocal = Math.max(0, contract.priceLocal - paidLocal);
-    const bobPerUsd = payments[0]?.fxRate ?? 12;
+    const bobPerUsd = latestBobPerUsd || (payments[0]?.fxRate ?? 12);
     const remainingUsd = remainingLocal / bobPerUsd;
     const paidPct =
       contract.priceLocal > 0 ? (paidLocal / contract.priceLocal) * 100 : 0;
+    const latestPrice = await db.query.priceSnapshots.findFirst({
+      where: eq(priceSnapshots.assetId, asset.id),
+      orderBy: [desc(priceSnapshots.date)],
+    });
+    const markedValueUsd =
+      latestPrice != null
+        ? latestPrice.priceUsd * contract.surfaceM2
+        : null;
+    const equityUsd = landEquityUsd({
+      paidUsd,
+      remainingUsd,
+      estimatedValueUsd: markedValueUsd,
+    });
 
     details.push({
       asset,
@@ -173,6 +199,9 @@ export async function listLandLots(): Promise<LandLotDetail[]> {
       remainingLocal,
       remainingUsd,
       paidPct,
+      contractPricePerM2Local: contractPricePerM2Local(contract),
+      currentPricePerM2Local: currentPricePerM2Local(contract, bobPerUsd),
+      equityUsd,
       schedule: buildSchedule(contract.paymentPlan, payments),
     });
   }
@@ -234,4 +263,41 @@ export async function createLandPayment(
   }
 
   return row;
+}
+
+export async function updateLandMarketValue(input: {
+  landAssetId: string;
+  pricePerM2Local: number;
+  fxRate: number;
+}): Promise<{ estimatedValueUsd: number }> {
+  const contract = await db.query.landContracts.findFirst({
+    where: and(
+      eq(landContracts.landAssetId, input.landAssetId),
+      isNull(landContracts.deletedAt),
+    ),
+  });
+  if (!contract) throw new Error("Lot not found");
+  if (contract.surfaceM2 <= 0) throw new Error("Lot has no area");
+  if (input.fxRate <= 0) throw new Error("FX rate must be positive");
+
+  const estimatedValueUsd =
+    (input.pricePerM2Local * contract.surfaceM2) / input.fxRate;
+  const priceUsdPerM2 = input.pricePerM2Local / input.fxRate;
+
+  await db
+    .update(landContracts)
+    .set({
+      estimatedValueUsd,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(landContracts.id, contract.id));
+
+  await upsertPriceSnapshot({
+    assetId: input.landAssetId,
+    date: localISODate(),
+    priceUsd: priceUsdPerM2,
+    source: "manual",
+  });
+
+  return { estimatedValueUsd };
 }

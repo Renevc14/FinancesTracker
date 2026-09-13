@@ -42,7 +42,7 @@ Single-user wealth tracker. One authenticated owner. No multi-tenancy, billing, 
 
 - **Assets** — catalog (crypto, stock, stable, etc.)
 - **Transactions** — buys/sells/transfers with optional import provenance
-- **Land contracts + payments** — installment lots (Berchatti)
+- **Land contracts + payments** — installment lots (Berchatti); current Bs/m² stored on the contract and as a price snapshot (USD/m²)
 - **FX rates** — currency conversion history
 - **Price snapshots** — asset prices at a point in time
 - **Monthly snapshots** — frozen portfolio valuation (UI under Ajustes → Fotos)

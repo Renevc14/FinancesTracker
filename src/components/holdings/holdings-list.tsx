@@ -40,7 +40,9 @@ function HoldingItem({
   const expandable = holding.wallets.length > 0;
   const staticNote =
     holding.class === "land"
-      ? "at cost"
+      ? Math.abs(holding.pnlUsd) < 0.5
+        ? "at cost"
+        : "marked"
       : holding.class === "cash"
         ? "cash"
         : null;
@@ -49,9 +51,11 @@ function HoldingItem({
       ? holding.investedUsd / holding.quantity
       : null;
   const fiat =
-    holding.priceUsd != null
-      ? holding.displayQuantity * holding.priceUsd
-      : holding.marketValueUsd;
+    holding.class === "land" || holding.class === "cash"
+      ? holding.marketValueUsd
+      : holding.priceUsd != null
+        ? holding.displayQuantity * holding.priceUsd
+        : holding.marketValueUsd;
 
   const isQtyAsset =
     holding.class === "crypto" ||
@@ -99,7 +103,21 @@ function HoldingItem({
           ) : (
             <>
               <p className="money text-[17px] font-semibold">{money(fiat)}</p>
-              <p className="text-[13px] text-[var(--muted)]">{staticNote}</p>
+              {holding.class === "land" && Math.abs(holding.pnlUsd) >= 0.5 ? (
+                <p
+                  className={cn(
+                    "text-[13px] tabular-nums",
+                    holding.pnlUsd >= 0
+                      ? "text-[var(--positive)]"
+                      : "text-[var(--negative)]",
+                  )}
+                >
+                  {holding.pnlUsd >= 0 ? "+ " : "− "}
+                  {money(Math.abs(holding.pnlUsd))}
+                </p>
+              ) : (
+                <p className="text-[13px] text-[var(--muted)]">{staticNote}</p>
+              )}
             </>
           )}
         </div>

@@ -14,7 +14,7 @@ import { cn, formatDate, formatMoney, formatPct } from "@/lib/utils";
 
 export type HistoryRange = "1M" | "3M" | "6M" | "YTD" | "MAX";
 
-const RANGES: HistoryRange[] = ["1M", "3M", "6M", "YTD", "MAX"];
+export const HISTORY_RANGES: HistoryRange[] = ["1M", "3M", "6M", "YTD", "MAX"];
 
 function addMonths(iso: string, months: number): string {
   const d = new Date(`${iso}T12:00:00`);
@@ -31,6 +31,17 @@ function rangeStart(range: HistoryRange, end: string): string {
   if (range === "1M") return addMonths(end, -1);
   if (range === "3M") return addMonths(end, -3);
   return addMonths(end, -6);
+}
+
+export function sliceHistory(
+  points: NavHistoryPoint[],
+  range: HistoryRange,
+): NavHistoryPoint[] {
+  if (points.length === 0) return [];
+  const end = points[points.length - 1].date;
+  const start = rangeStart(range, end);
+  const filtered = points.filter((p) => p.date >= start);
+  return filtered.length >= 2 ? filtered : points.slice(-2);
 }
 
 function ChartTooltip({
@@ -73,13 +84,10 @@ export function NavHistoryChart({
   const [range, setRange] = useState<HistoryRange>("MAX");
   const [scrub, setScrub] = useState<NavHistoryPoint | null>(null);
 
-  const sliced = useMemo(() => {
-    if (points.length === 0) return [];
-    const end = points[points.length - 1].date;
-    const start = rangeStart(range, end);
-    const filtered = points.filter((p) => p.date >= start);
-    return filtered.length >= 2 ? filtered : points.slice(-2);
-  }, [points, range]);
+  const sliced = useMemo(
+    () => sliceHistory(points, range),
+    [points, range],
+  );
 
   const display = scrub ?? sliced[sliced.length - 1];
   const first = sliced[0];
@@ -206,7 +214,7 @@ export function NavHistoryChart({
         role="tablist"
         aria-label="Chart range"
       >
-        {RANGES.map((item) => (
+        {HISTORY_RANGES.map((item) => (
           <button
             key={item}
             type="button"

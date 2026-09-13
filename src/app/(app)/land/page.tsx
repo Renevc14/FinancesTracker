@@ -66,6 +66,26 @@ export default async function LandPage() {
                     {formatMoney(lot.paidUsd, "USD")}
                   </span>
                 </div>
+                {lot.currentPricePerM2Local != null && (
+                  <p className="text-[13px] text-[var(--muted)]">
+                    Frozen {formatMoney(lot.contractPricePerM2Local, "BOB")}/m²
+                    {" · "}
+                    Now {formatMoney(lot.currentPricePerM2Local, "BOB")}/m²
+                    {Math.abs(lot.equityUsd - lot.paidUsd) >= 0.5 ? (
+                      <span
+                        className={
+                          lot.equityUsd >= lot.paidUsd
+                            ? " text-[var(--positive)]"
+                            : " text-[var(--negative)]"
+                        }
+                      >
+                        {" · "}
+                        {lot.equityUsd >= lot.paidUsd ? "+" : "−"}
+                        {formatMoney(Math.abs(lot.equityUsd - lot.paidUsd), "USD")}
+                      </span>
+                    ) : null}
+                  </p>
+                )}
               </div>
             </Link>
           </li>

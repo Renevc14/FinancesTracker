@@ -14,6 +14,7 @@ import {
   type AssetClass,
   type DisplayCurrency,
 } from "@/lib/db/schema";
+import { landEquityUsd } from "@/lib/services/land-value";
 
 export type WalletSlice = {
   key: "spot" | "earn" | "funding" | "collateral";
@@ -56,6 +57,7 @@ export type DashboardKpis = {
   landCommittedUsd: number;
   landRemainingUsd: number;
   landEstimatedValueUsd: number;
+  landEquityUsd: number;
   lastUpdated: string | null;
   holdings: HoldingRow[];
   byClass: ClassBreakdown[];
@@ -215,26 +217,50 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     landCommittedUsdConverted - landPaidUsd,
   );
 
+  let landEquityUsdTotal = 0;
   for (const asset of landAssets) {
     const lotPays = payments.filter((p) => p.landAssetId === asset.id);
     const investedUsd = lotPays.reduce((s, p) => s + p.amountUsd, 0);
-    if (investedUsd <= 0) continue;
     const contract = contracts.find((c) => c.landAssetId === asset.id);
+    const paidLocal = lotPays.reduce(
+      (s, p) => s + p.amountLocal + (p.discountLocal ?? 0),
+      0,
+    );
+    const latestPrice = await db.query.priceSnapshots.findFirst({
+      where: eq(priceSnapshots.assetId, asset.id),
+      orderBy: [desc(priceSnapshots.date)],
+    });
+    const remainingUsd = contract
+      ? Math.max(0, contract.priceLocal - paidLocal) / (bobPerUsd || 1)
+      : 0;
+    const equityUsd = landEquityUsd({
+      paidUsd: investedUsd,
+      remainingUsd,
+      estimatedValueUsd:
+        latestPrice != null && contract
+          ? latestPrice.priceUsd * contract.surfaceM2
+          : null,
+    });
+    landEquityUsdTotal += equityUsd;
+    if (investedUsd <= 0 && equityUsd <= 0) continue;
+    const surface = contract?.surfaceM2 ?? 1;
+    const priceUsd = latestPrice?.priceUsd ?? null;
+    const pnlUsd = equityUsd - investedUsd;
     holdings.push({
       assetId: asset.id,
       ticker: asset.ticker,
       name: asset.name,
       class: "land",
-      quantity: contract?.surfaceM2 ?? 1,
+      quantity: surface,
       investedUsd,
-      priceUsd: null,
+      priceUsd,
       priceDate: lotPays[0]?.date ?? null,
-      marketValueUsd: investedUsd,
-      pnlUsd: 0,
-      pnlPct: 0,
+      marketValueUsd: equityUsd,
+      pnlUsd,
+      pnlPct: investedUsd !== 0 ? (pnlUsd / investedUsd) * 100 : 0,
       custodyLabel: null,
       wallets: [],
-      displayQuantity: contract?.surfaceM2 ?? 1,
+      displayQuantity: surface,
     });
   }
 
@@ -293,13 +319,13 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
   });
   const debtUsd = loans.reduce((s, l) => s + l.debtUsd, 0);
 
-  const grossMarketValueUsd = financialValue + landPaidUsd + cashUsd;
+  const grossMarketValueUsd = financialValue + landEquityUsdTotal + cashUsd;
   const totalInvestedUsd = financialInvested + landPaidUsd + cashUsd;
   // Personal loans (money lent to others) stay off-balance and never enter NAV.
   const totalMarketValueUsd = grossMarketValueUsd - debtUsd;
-  const pnlUsd = financialValue - financialInvested;
+  const pnlUsd = totalMarketValueUsd - totalInvestedUsd;
   const pnlPct =
-    financialInvested !== 0 ? (pnlUsd / financialInvested) * 100 : 0;
+    totalInvestedUsd !== 0 ? (pnlUsd / totalInvestedUsd) * 100 : 0;
 
   const classMap = new Map<AssetClass, { invested: number; value: number }>();
   for (const h of holdings) {
@@ -385,6 +411,7 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     landCommittedUsd: landCommittedUsdConverted,
     landRemainingUsd,
     landEstimatedValueUsd,
+    landEquityUsd: landEquityUsdTotal,
     lastUpdated,
     holdings,
     byClass,

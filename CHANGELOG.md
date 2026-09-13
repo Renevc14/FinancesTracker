@@ -13,7 +13,8 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Vercel build uses Turso env aliases and does not run `drizzle-kit push`
 - Home no longer backfills CoinGecko/Yahoo history on every load (avoids Vercel timeouts)
 - Home serializes Turso numbers for the client and surfaces the real error message
-- Fix Vercel/CI lint (`setState` in effects) and allow `next build` without Turso at compile time
+- Cost vs value chart on Home (capital deployed vs current net worth)
+- Lot Status: update current Bs/m² and compare it to the frozen contract price
 
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local
@@ -33,7 +34,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Binance Spot (`myTrades` USDT/USDC) es la fuente de verdad de compras y ventas de criptos del catálogo; el sync sustituye el libro local de esos activos
 - El libro Spot empieza el 1 feb 2026; fills anteriores de Binance se ignoran y se archivan
 - Binance Earn, Funding y préstamos: el patrimonio descuenta la deuda; la reconcilación mira Spot+Earn+colateral
-- Patrimonio total incluye lo pagado en lotes al costo (el saldo pendiente sigue en comprometido)
+- Patrimonio total incluye lo pagado en lotes al costo; el valor actual usa Bs/m² actualizado (equity = valor del lote − saldo pendiente)
 - UI más fina: tipografía tabular, toggle de moneda, cards y distribución sin recorte
 - Formulario de nueva transacción alineado al resto de la app (card, tipos en español)
 

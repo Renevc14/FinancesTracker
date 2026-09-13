@@ -12,11 +12,12 @@ import {
 } from "@/lib/db/schema";
 import {
   assetFormSchema,
+  landMarketValueFormSchema,
   landPaymentFormSchema,
   transactionFormSchema,
   personalLoanFormSchema,
 } from "@/lib/validators";
-import { createLandPayment } from "@/lib/services/land";
+import { createLandPayment, updateLandMarketValue } from "@/lib/services/land";
 import {
   createPersonalLoan,
   deletePersonalLoan,
@@ -156,6 +157,31 @@ export async function createLandPaymentAction(
     console.error("[createLandPaymentAction]", err);
     const message =
       err instanceof Error ? err.message : "Could not save payment";
+    return { ok: false, error: message };
+  }
+}
+
+export async function updateLandMarketValueAction(
+  formData: FormData,
+): Promise<ActionResult<{ estimatedValueUsd: number }>> {
+  const parsed = landMarketValueFormSchema.safeParse({
+    landAssetId: formData.get("landAssetId"),
+    pricePerM2Local: formData.get("pricePerM2Local"),
+    fxRate: formData.get("fxRate"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+  }
+  try {
+    const data = await updateLandMarketValue(parsed.data);
+    revalidatePath("/dashboard");
+    revalidatePath("/land");
+    revalidatePath(`/land/${parsed.data.landAssetId}`);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("[updateLandMarketValueAction]", err);
+    const message =
+      err instanceof Error ? err.message : "Could not save lot value";
     return { ok: false, error: message };
   }
 }

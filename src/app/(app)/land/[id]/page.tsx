@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LandPaymentForm } from "@/components/forms/land-payment-form";
+import { LandValueForm } from "@/components/forms/land-value-form";
 import { LandTabs, type LandTabId } from "@/components/land/land-tabs";
 import { Progress } from "@/components/ui/progress";
 import { getLatestFxRate } from "@/lib/services/fx";
@@ -43,6 +44,14 @@ export default async function LandDetailPage({
   const upcoming = lot.schedule.filter(
     (s) => s.status === "upcoming" || s.status === "due",
   );
+  const nowPerM2 =
+    lot.currentPricePerM2Local ?? lot.contractPricePerM2Local;
+  const lotNowLocal = nowPerM2 * lot.contract.surfaceM2;
+  const lotNowUsd =
+    lot.contract.estimatedValueUsd ??
+    (fx > 0 ? lotNowLocal / fx : 0);
+  const vsContractLocal = lotNowLocal - lot.contract.priceLocal;
+  const vsPaidUsd = lot.equityUsd - lot.paidUsd;
 
   const statusPanel = (
     <section className="space-y-3">
@@ -71,6 +80,49 @@ export default async function LandDetailPage({
         </div>
       </div>
       <Progress value={lot.paidPct} />
+
+      <div className="ios-group">
+        <div className="grid grid-cols-2">
+          <Stat
+            label="Frozen Bs/m²"
+            value={formatMoney(lot.contractPricePerM2Local, "BOB")}
+          />
+          <Stat
+            label="Now Bs/m²"
+            value={formatMoney(nowPerM2, "BOB")}
+            border
+          />
+          <Stat
+            label="Lot now"
+            value={formatMoney(lotNowUsd, "USD")}
+            top
+          />
+          <Stat
+            label="In NAV"
+            value={formatMoney(lot.equityUsd, "USD")}
+            border
+            top
+          />
+        </div>
+      </div>
+      <p className="px-0.5 text-[13px] text-[var(--muted)]">
+        {vsContractLocal >= 0 ? "+" : "−"}
+        {formatMoney(Math.abs(vsContractLocal), "BOB")} vs contract
+        {lot.paidUsd > 0
+          ? ` · NAV ${vsPaidUsd >= 0 ? "+" : "−"}${formatMoney(Math.abs(vsPaidUsd), "USD")} vs paid`
+          : ""}
+      </p>
+
+      <div className="ios-group p-4">
+        <LandValueForm
+          landAssetId={lot.asset.id}
+          surfaceM2={lot.contract.surfaceM2}
+          contractPricePerM2Local={lot.contractPricePerM2Local}
+          defaultPricePerM2Local={nowPerM2}
+          fxRate={fx}
+        />
+      </div>
+
       <Link
         href={`/pagos/nuevo?lote=${lot.asset.id}`}
         className="ios-pressable inline-flex h-12 w-full items-center justify-center rounded-[var(--radius)] bg-[var(--accent)] text-[17px] font-semibold text-[var(--accent-fg)]"
