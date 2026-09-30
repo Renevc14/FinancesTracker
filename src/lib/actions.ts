@@ -14,10 +14,17 @@ import {
   assetFormSchema,
   landMarketValueFormSchema,
   landPaymentFormSchema,
+  landPaymentUpdateSchema,
   transactionFormSchema,
   personalLoanFormSchema,
 } from "@/lib/validators";
-import { createLandPayment, updateLandMarketValue } from "@/lib/services/land";
+import {
+  cleanupExtraDownPayments,
+  createLandPayment,
+  deleteLandPayment,
+  updateLandMarketValue,
+  updateLandPayment,
+} from "@/lib/services/land";
 import {
   createPersonalLoan,
   deletePersonalLoan,
@@ -157,6 +164,84 @@ export async function createLandPaymentAction(
     console.error("[createLandPaymentAction]", err);
     const message =
       err instanceof Error ? err.message : "Could not save payment";
+    return { ok: false, error: message };
+  }
+}
+
+function parseLandPaymentForm(formData: FormData) {
+  return {
+    date: formData.get("date"),
+    landAssetId: formData.get("landAssetId"),
+    concept: formData.get("concept"),
+    installmentNumber: formData.get("installmentNumber") || null,
+    amountLocal: formData.get("amountLocal"),
+    localCurrency: formData.get("localCurrency") || "BOB",
+    fxRate: formData.get("fxRate"),
+    paymentMethod: formData.get("paymentMethod"),
+    discountLocal: formData.get("discountLocal"),
+    notes: formData.get("notes") || undefined,
+  };
+}
+
+function receiptFromForm(formData: FormData): File | null {
+  const receiptRaw = formData.get("receipt");
+  return receiptRaw instanceof File && receiptRaw.size > 0 ? receiptRaw : null;
+}
+
+export async function updateLandPaymentAction(
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = landPaymentUpdateSchema.safeParse({
+    id: formData.get("id"),
+    ...parseLandPaymentForm(formData),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+  }
+  try {
+    const row = await updateLandPayment(parsed.data, receiptFromForm(formData));
+    revalidatePath("/dashboard");
+    revalidatePath("/land");
+    revalidatePath("/pagos/nuevo");
+    revalidatePath(`/land/${parsed.data.landAssetId}`);
+    return { ok: true, data: { id: row.id } };
+  } catch (err) {
+    console.error("[updateLandPaymentAction]", err);
+    const message =
+      err instanceof Error ? err.message : "Could not update payment";
+    return { ok: false, error: message };
+  }
+}
+
+export async function deleteLandPaymentAction(
+  id: string,
+): Promise<ActionResult<{ landAssetId: string }>> {
+  try {
+    const row = await deleteLandPayment(id);
+    revalidatePath("/dashboard");
+    revalidatePath("/land");
+    revalidatePath(`/land/${row.landAssetId}`);
+    return { ok: true, data: { landAssetId: row.landAssetId } };
+  } catch (err) {
+    console.error("[deleteLandPaymentAction]", err);
+    const message =
+      err instanceof Error ? err.message : "Could not delete payment";
+    return { ok: false, error: message };
+  }
+}
+
+export async function cleanupExtraDownPaymentsAction(): Promise<
+  ActionResult<{ kept: string[]; deleted: string[] }>
+> {
+  try {
+    const data = await cleanupExtraDownPayments();
+    revalidatePath("/dashboard");
+    revalidatePath("/land");
+    return { ok: true, data };
+  } catch (err) {
+    console.error("[cleanupExtraDownPaymentsAction]", err);
+    const message =
+      err instanceof Error ? err.message : "Could not clean extra payments";
     return { ok: false, error: message };
   }
 }

@@ -9,7 +9,10 @@ import {
   type LandPayment,
   type LandPaymentPlan,
 } from "@/lib/db/schema";
-import type { LandPaymentFormValues } from "@/lib/validators";
+import type {
+  LandPaymentFormValues,
+  LandPaymentUpdateValues,
+} from "@/lib/validators";
 import { saveReceiptFile, assertReceiptFile } from "@/lib/receipts";
 import { getLatestFxRate } from "@/lib/services/fx";
 import {
@@ -263,6 +266,117 @@ export async function createLandPayment(
   }
 
   return row;
+}
+
+export async function getLandPayment(
+  id: string,
+): Promise<LandPayment | null> {
+  const row = await db.query.landPayments.findFirst({
+    where: and(eq(landPayments.id, id), isNull(landPayments.deletedAt)),
+  });
+  return row ?? null;
+}
+
+export async function updateLandPayment(
+  values: LandPaymentUpdateValues,
+  receipt?: File | null,
+): Promise<LandPayment> {
+  const existing = await getLandPayment(values.id);
+  if (!existing) throw new Error("Payment not found");
+  if (existing.landAssetId !== values.landAssetId) {
+    throw new Error("Payment does not belong to this lot");
+  }
+
+  const discountLocal = values.discountLocal ?? 0;
+  const amountUsd = values.amountLocal / values.fxRate;
+  const installmentNumber =
+    values.concept === "installment" ? (values.installmentNumber ?? null) : null;
+
+  const [row] = await db
+    .update(landPayments)
+    .set({
+      date: values.date,
+      concept: values.concept,
+      installmentNumber,
+      amountLocal: values.amountLocal,
+      localCurrency: values.localCurrency,
+      fxRate: values.fxRate,
+      amountUsd,
+      paymentMethod: values.paymentMethod,
+      discountLocal,
+      notes: values.notes || null,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(landPayments.id, values.id))
+    .returning();
+
+  if (!row) throw new Error("Could not update payment");
+
+  if (receipt && receipt.size > 0) {
+    const invalid = assertReceiptFile(receipt);
+    if (invalid) throw new Error(invalid);
+    const saved = await saveReceiptFile(row.id, receipt);
+    const [updated] = await db
+      .update(landPayments)
+      .set({
+        receiptPath: saved.relativePath,
+        receiptName: saved.name,
+        receiptMime: saved.mime,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(landPayments.id, row.id))
+      .returning();
+    return updated ?? row;
+  }
+
+  return row;
+}
+
+export async function deleteLandPayment(id: string): Promise<LandPayment> {
+  const existing = await getLandPayment(id);
+  if (!existing) throw new Error("Payment not found");
+  const now = new Date().toISOString();
+  const [row] = await db
+    .update(landPayments)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(eq(landPayments.id, id))
+    .returning();
+  if (!row) throw new Error("Could not delete payment");
+  return row;
+}
+
+/** Keep one real down payment per lot; soft-delete the extra `initial` rows. */
+export async function cleanupExtraDownPayments(): Promise<{
+  kept: string[];
+  deleted: string[];
+}> {
+  const lots = await listLandLots();
+  const kept: string[] = [];
+  const deleted: string[] = [];
+
+  for (const lot of lots) {
+    const initials = lot.payments.filter((p) => p.concept === "initial");
+    if (initials.length <= 1) {
+      if (initials[0]) kept.push(initials[0].id);
+      continue;
+    }
+    const target =
+      lot.contract.priceLocal * (lot.contract.paymentPlan.initialPct || 0.05);
+    const keep = [...initials].sort((a, b) => {
+      const da = Math.abs(a.amountLocal - target);
+      const db = Math.abs(b.amountLocal - target);
+      if (da !== db) return da - db;
+      return a.createdAt.localeCompare(b.createdAt);
+    })[0];
+    kept.push(keep.id);
+    for (const extra of initials) {
+      if (extra.id === keep.id) continue;
+      await deleteLandPayment(extra.id);
+      deleted.push(extra.id);
+    }
+  }
+
+  return { kept, deleted };
 }
 
 export async function updateLandMarketValue(input: {

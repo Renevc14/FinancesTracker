@@ -42,7 +42,7 @@ Smoke:
 
 - Auth (server action login) + TOTP opcional (`AUTH_TOTP_SECRET`)
 - Transactions CRUD
-- Land lots M-176-15 / M-176-16 + payment flows (receipt file + optional discount)
+- Land lots M-176-15 / M-176-16 + payment flows (receipt, discount, edit/delete)
 - Dashboard KPIs + allocation + currency toggle
 - **NAV includes lots at cost** (paid) on the cost line; **value uses current Bs/m²** when set (lot value minus unpaid contract). Remaining balance stays in committed.
 - Cash bancario (último saldo) en patrimonio

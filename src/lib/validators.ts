@@ -38,6 +38,12 @@ export const landPaymentFormSchema = z.object({
 
 export type LandPaymentFormValues = z.infer<typeof landPaymentFormSchema>;
 
+export const landPaymentUpdateSchema = landPaymentFormSchema.extend({
+  id: z.string().uuid(),
+});
+
+export type LandPaymentUpdateValues = z.infer<typeof landPaymentUpdateSchema>;
+
 export const landMarketValueFormSchema = z.object({
   landAssetId: z.string().uuid(),
   pricePerM2Local: z.coerce.number().positive(),

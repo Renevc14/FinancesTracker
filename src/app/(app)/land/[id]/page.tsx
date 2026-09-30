@@ -2,23 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LandPaymentForm } from "@/components/forms/land-payment-form";
 import { LandValueForm } from "@/components/forms/land-value-form";
+import { LandPaymentRow } from "@/components/land/land-payment-row";
 import { LandTabs, type LandTabId } from "@/components/land/land-tabs";
 import { Progress } from "@/components/ui/progress";
 import { getLatestFxRate } from "@/lib/services/fx";
 import { getLandLot } from "@/lib/services/land";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatDate, formatMoney, serializeForClient } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-const CONCEPT_LABELS: Record<string, string> = {
-  reservation: "Reservation",
-  initial: "Down payment",
-  installment: "Installment",
-  balloon: "Balloon",
-  tax: "IT",
-  notary: "Notary",
-  other: "Other",
-};
 
 export default async function LandDetailPage({
   params,
@@ -186,48 +177,7 @@ export default async function LandDetailPage({
           </li>
         )}
         {lot.payments.map((p) => (
-          <li
-            key={p.id}
-            className="ios-row"
-          >
-            <div>
-              <p className="ios-headline">
-                {CONCEPT_LABELS[p.concept] ?? p.concept}
-                {p.installmentNumber != null
-                  ? ` #${p.installmentNumber}`
-                  : ""}
-              </p>
-              <p className="text-[13px] text-[var(--muted)]">
-                {formatDate(p.date)} · {p.paymentMethod}
-                {p.receiptPath ? (
-                  <>
-                    {" · "}
-                    <a
-                      href={`/api/receipts/${p.id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium text-[var(--accent)]"
-                    >
-                      {p.receiptName ?? "Receipt"}
-                    </a>
-                  </>
-                ) : null}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="money text-[17px] font-semibold">
-                {formatMoney(p.amountLocal, p.localCurrency)}
-              </p>
-              {(p.discountLocal ?? 0) > 0 && (
-                <p className="text-[12px] text-[var(--warn)]">
-                  Disc. {formatMoney(p.discountLocal, p.localCurrency)}
-                </p>
-              )}
-              <p className="text-[13px] text-[var(--muted)]">
-                {formatMoney(p.amountUsd, "USD")}
-              </p>
-            </div>
-          </li>
+          <LandPaymentRow key={p.id} payment={serializeForClient(p)} />
         ))}
       </ul>
     </section>

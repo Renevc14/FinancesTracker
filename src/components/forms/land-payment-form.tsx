@@ -4,8 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { createLandPaymentAction } from "@/lib/actions";
-import type { Asset } from "@/lib/db/schema";
+import {
+  createLandPaymentAction,
+  updateLandPaymentAction,
+} from "@/lib/actions";
+import type { Asset, LandConcept, LandPayment } from "@/lib/db/schema";
 import { landConcepts } from "@/lib/db/schema";
 import { formatMoney, localISODate } from "@/lib/utils";
 
@@ -23,21 +26,35 @@ export function LandPaymentForm({
   lands,
   defaultLandId,
   defaultFx = "12.3",
+  payment,
 }: {
   lands: Asset[];
   defaultLandId?: string;
   defaultFx?: string;
+  payment?: LandPayment;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [concept, setConcept] = useState("installment");
-  const [amount, setAmount] = useState("");
-  const [fx, setFx] = useState(defaultFx);
-  const [withDiscount, setWithDiscount] = useState(false);
-  const [discount, setDiscount] = useState("");
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [date, setDate] = useState(localISODate);
+  const [concept, setConcept] = useState<LandConcept>(
+    payment?.concept ?? "installment",
+  );
+  const [amount, setAmount] = useState(
+    payment ? String(payment.amountLocal) : "",
+  );
+  const [fx, setFx] = useState(
+    payment ? String(payment.fxRate) : defaultFx,
+  );
+  const [withDiscount, setWithDiscount] = useState(
+    (payment?.discountLocal ?? 0) > 0,
+  );
+  const [discount, setDiscount] = useState(
+    (payment?.discountLocal ?? 0) > 0 ? String(payment?.discountLocal) : "",
+  );
+  const [fileName, setFileName] = useState<string | null>(
+    payment?.receiptName ?? null,
+  );
+  const [date, setDate] = useState(payment?.date ?? localISODate);
 
   const amountLocal = Number(amount) || 0;
   const discountLocal = withDiscount ? Number(discount) || 0 : 0;
@@ -56,31 +73,36 @@ export function LandPaymentForm({
         if (!withDiscount) fd.set("discountLocal", "0");
         const landAssetId = String(fd.get("landAssetId"));
         start(async () => {
-          const result = await createLandPaymentAction(fd);
+          const result = payment
+            ? await updateLandPaymentAction(fd)
+            : await createLandPaymentAction(fd);
           if (!result.ok) {
             setError(result.error);
             return;
           }
-          form.reset();
-          setAmount("");
-          setWithDiscount(false);
-          setDiscount("");
-          setFileName(null);
-          setConcept("installment");
-          setDate(localISODate());
+          if (!payment) {
+            form.reset();
+            setAmount("");
+            setWithDiscount(false);
+            setDiscount("");
+            setFileName(null);
+            setConcept("installment");
+            setDate(localISODate());
+          }
           setError(null);
           router.push(`/land/${landAssetId}?tab=payments`);
           router.refresh();
         });
       }}
     >
+      {payment ? <input type="hidden" name="id" value={payment.id} /> : null}
       <div className="space-y-2">
         <Label htmlFor="landAssetId">Lot</Label>
         <Select
           id="landAssetId"
           name="landAssetId"
           required
-          defaultValue={defaultLandId ?? ""}
+          defaultValue={payment?.landAssetId ?? defaultLandId ?? ""}
         >
           <option value="" disabled>
             Choose…
@@ -100,7 +122,7 @@ export function LandPaymentForm({
             id="concept"
             name="concept"
             value={concept}
-            onChange={(e) => setConcept(e.target.value)}
+            onChange={(e) => setConcept(e.target.value as LandConcept)}
           >
             {landConcepts.map((c) => (
               <option key={c} value={c}>
@@ -131,6 +153,7 @@ export function LandPaymentForm({
             type="number"
             min={1}
             required
+            defaultValue={payment?.installmentNumber ?? ""}
           />
         </div>
       )}
@@ -150,7 +173,11 @@ export function LandPaymentForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="localCurrency">Currency</Label>
-          <Select id="localCurrency" name="localCurrency" defaultValue="BOB">
+          <Select
+            id="localCurrency"
+            name="localCurrency"
+            defaultValue={payment?.localCurrency ?? "BOB"}
+          >
             <option value="BOB">BOB</option>
             <option value="USD">USD</option>
           </Select>
@@ -221,8 +248,14 @@ export function LandPaymentForm({
         <Select
           id="paymentMethod"
           name="paymentMethod"
-          defaultValue="Transferencia BNB"
+          defaultValue={payment?.paymentMethod ?? "Transferencia BNB"}
         >
+          {payment?.paymentMethod &&
+          !["Efectivo", "Transferencia BNB", "USDT/P2P", "Cheque", "Otro"].includes(
+            payment.paymentMethod,
+          ) ? (
+            <option>{payment.paymentMethod}</option>
+          ) : null}
           <option>Efectivo</option>
           <option>Transferencia BNB</option>
           <option>USDT/P2P</option>
@@ -251,13 +284,18 @@ export function LandPaymentForm({
 
       <div className="space-y-2">
         <Label htmlFor="notes">Notes</Label>
-        <Textarea id="notes" name="notes" rows={2} />
+        <Textarea
+          id="notes"
+          name="notes"
+          rows={2}
+          defaultValue={payment?.notes ?? ""}
+        />
       </div>
 
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Saving…" : "Save"}
+        {pending ? "Saving…" : payment ? "Save changes" : "Save"}
       </Button>
     </form>
   );

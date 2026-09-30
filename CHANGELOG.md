@@ -15,6 +15,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 - Home serializes Turso numbers for the client and surfaces the real error message
 - Cost vs value chart on Home (capital deployed vs current net worth)
 - Lot Status: update current Bs/m² and compare it to the frozen contract price
+- Edit and delete saved lot payments
 
 - Pagos de terreno: adjunto de comprobante (imagen/PDF) y descuento opcional
 - Docker Compose para desarrollo local
