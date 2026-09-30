@@ -19,7 +19,6 @@ import {
   personalLoanFormSchema,
 } from "@/lib/validators";
 import {
-  cleanupExtraDownPayments,
   createLandPayment,
   deleteLandPayment,
   updateLandMarketValue,
@@ -150,6 +149,9 @@ export async function createLandPaymentAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
   }
+  if (parsed.data.date > new Date().toISOString().slice(0, 10)) {
+    return { ok: false, error: "Date cannot be in the future" };
+  }
   const receiptRaw = formData.get("receipt");
   const receipt =
     receiptRaw instanceof File && receiptRaw.size > 0 ? receiptRaw : null;
@@ -198,12 +200,18 @@ export async function updateLandPaymentAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
   }
+  if (parsed.data.date > new Date().toISOString().slice(0, 10)) {
+    return { ok: false, error: "Date cannot be in the future" };
+  }
   try {
     const row = await updateLandPayment(parsed.data, receiptFromForm(formData));
     revalidatePath("/dashboard");
     revalidatePath("/land");
     revalidatePath("/pagos/nuevo");
     revalidatePath(`/land/${parsed.data.landAssetId}`);
+    revalidatePath(
+      `/land/${parsed.data.landAssetId}/payments/${parsed.data.id}/edit`,
+    );
     return { ok: true, data: { id: row.id } };
   } catch (err) {
     console.error("[updateLandPaymentAction]", err);
@@ -226,22 +234,6 @@ export async function deleteLandPaymentAction(
     console.error("[deleteLandPaymentAction]", err);
     const message =
       err instanceof Error ? err.message : "Could not delete payment";
-    return { ok: false, error: message };
-  }
-}
-
-export async function cleanupExtraDownPaymentsAction(): Promise<
-  ActionResult<{ kept: string[]; deleted: string[] }>
-> {
-  try {
-    const data = await cleanupExtraDownPayments();
-    revalidatePath("/dashboard");
-    revalidatePath("/land");
-    return { ok: true, data };
-  } catch (err) {
-    console.error("[cleanupExtraDownPaymentsAction]", err);
-    const message =
-      err instanceof Error ? err.message : "Could not clean extra payments";
     return { ok: false, error: message };
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteLandPaymentAction } from "@/lib/actions";
@@ -20,6 +20,7 @@ const CONCEPT_LABELS: Record<string, string> = {
 export function LandPaymentRow({ payment }: { payment: LandPayment }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <li className="ios-row items-start">
@@ -46,22 +47,26 @@ export function LandPaymentRow({ payment }: { payment: LandPayment }) {
             </>
           ) : null}
         </p>
-        <div className="mt-1 flex gap-3">
+        <div className="mt-1 flex gap-2">
           <Link
             href={`/land/${payment.landAssetId}/payments/${payment.id}/edit`}
-            className="text-[13px] font-semibold text-[var(--accent)]"
+            className="ios-pressable inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--accent)]"
           >
             Edit
           </Link>
           <button
             type="button"
             disabled={pending}
-            className="text-[13px] font-semibold text-[var(--danger)] disabled:opacity-40"
+            className="ios-pressable inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--danger)] disabled:opacity-40"
             onClick={() => {
               if (!window.confirm("Delete this payment?")) return;
               start(async () => {
                 const result = await deleteLandPaymentAction(payment.id);
-                if (!result.ok) return;
+                if (!result.ok) {
+                  setError(result.error);
+                  return;
+                }
+                setError(null);
                 router.refresh();
               });
             }}
@@ -69,6 +74,11 @@ export function LandPaymentRow({ payment }: { payment: LandPayment }) {
             {pending ? "Deleting…" : "Delete"}
           </button>
         </div>
+        {error ? (
+          <p className="text-[13px] text-[var(--danger)]" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
       <div className="shrink-0 text-right">
         <p className="money text-[17px] font-semibold">

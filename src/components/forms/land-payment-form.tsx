@@ -95,13 +95,19 @@ export function LandPaymentForm({
         });
       }}
     >
-      {payment ? <input type="hidden" name="id" value={payment.id} /> : null}
+      {payment ? (
+        <>
+          <input type="hidden" name="id" value={payment.id} />
+          <input type="hidden" name="landAssetId" value={payment.landAssetId} />
+        </>
+      ) : null}
       <div className="space-y-2">
         <Label htmlFor="landAssetId">Lot</Label>
         <Select
           id="landAssetId"
           name="landAssetId"
           required
+          disabled={!!payment}
           defaultValue={payment?.landAssetId ?? defaultLandId ?? ""}
         >
           <option value="" disabled>
