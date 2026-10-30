@@ -21,10 +21,6 @@ export function portfolioStartMs(date = PORTFOLIO_START_DATE) {
   return Date.parse(`${date}T00:00:00.000Z`);
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 function num(value: unknown): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -190,7 +186,6 @@ export class BinanceClient implements ExchangeClient {
       "/sapi/v1/simple-earn/flexible/position",
       "/sapi/v1/simple-earn/locked/position",
     ]) {
-      await sleep(80);
       const data = await this.signedRequest("GET", path, {
         current: "1",
         size: "100",
@@ -211,20 +206,17 @@ export class BinanceClient implements ExchangeClient {
   }
 
   private async getFundingBalances(): Promise<Balance[]> {
-    await sleep(80);
     const data = await this.signedRequest("POST", "/sapi/v1/asset/get-funding-asset");
     return rawToBalances(Array.isArray(data) ? data : asRows(data));
   }
 
   private async getLoans(): Promise<LoanPosition[]> {
     const out: LoanPosition[] = [];
-    await sleep(80);
     const flex = await this.signedRequest("GET", "/sapi/v2/loan/flexible/ongoing/orders", {
       current: "1",
       limit: "100",
     });
     out.push(...parseLoans(asRows(flex), "flexible"));
-    await sleep(80);
     try {
       const stable = await this.signedRequest("GET", "/sapi/v1/loan/ongoing/orders", {
         current: "1",
@@ -245,13 +237,16 @@ export class BinanceClient implements ExchangeClient {
     const types = ["BONUS", "REALTIME", "REWARDS"];
     const flexPath = "/sapi/v1/simple-earn/flexible/history/rewardsRecord";
     const lockedPath = "/sapi/v1/simple-earn/locked/history/rewardsRecord";
+    const lookbackMs = 90 * 24 * 60 * 60 * 1000;
+    const fromMs = Math.max(sinceMs, Date.now() - lookbackMs);
+    const warnCount = warnings.length;
 
     for (const rewardType of types) {
       await this.paginateSigned(
         flexPath,
         { type: rewardType },
-        sinceMs,
-        89,
+        fromMs,
+        90,
         (row) => pushReward(out, row, `flex:${rewardType}`, sinceMs),
         warnings,
       );
@@ -259,17 +254,17 @@ export class BinanceClient implements ExchangeClient {
     await this.paginateSigned(
       lockedPath,
       {},
-      sinceMs,
-      89,
+      fromMs,
+      90,
       (row) => pushReward(out, row, "locked", sinceMs),
       warnings,
     );
 
-    if (out.length === 0) {
+    if (out.length === 0 && warnings.length > warnCount) {
       await this.paginateSigned(
         "/sapi/v1/asset/assetDividend",
         { limit: "500" },
-        sinceMs,
+        fromMs,
         90,
         (row) => pushReward(out, row, "div", sinceMs),
         warnings,
@@ -296,7 +291,6 @@ export class BinanceClient implements ExchangeClient {
     for (let start = sinceMs; start < now; start += windowMs) {
       const end = Math.min(start + windowMs - 1, now);
       for (let page = 1; page <= 20; page++) {
-        await sleep(80);
         const query: Record<string, string> = {
           ...extra,
           startTime: String(start),
@@ -325,13 +319,14 @@ export class BinanceClient implements ExchangeClient {
     sinceMs: number,
   ): Promise<Trade[]> {
     const out: Trade[] = [];
-    let fromId = "1";
+    let fromId: string | null = null;
     for (let page = 0; page < 50; page++) {
       const extra: Record<string, string> = {
         symbol,
         limit: "1000",
-        fromId,
       };
+      if (fromId) extra.fromId = fromId;
+      else extra.startTime = String(sinceMs);
       const rows = await this.signedRequest("GET", "/api/v3/myTrades", extra);
       const list = Array.isArray(rows)
         ? (rows as Array<Record<string, unknown>>)
@@ -356,7 +351,6 @@ export class BinanceClient implements ExchangeClient {
       const lastId = Number(list[list.length - 1]?.id);
       if (!Number.isFinite(lastId)) break;
       fromId = String(lastId + 1);
-      await sleep(80);
     }
     return out;
   }
