@@ -240,7 +240,9 @@ export async function getPortfolioHistory(current: {
         if (
           tx.type === "buy" ||
           tx.type === "transfer_in" ||
-          tx.type === "reward"
+          tx.type === "reward" ||
+          tx.type === "dividend" ||
+          tx.type === "adjustment"
         ) {
           qty.set(tx.assetId, q + tx.quantity);
           if (tx.type === "buy") invested.set(tx.assetId, inv + tx.totalUsd);

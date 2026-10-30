@@ -142,7 +142,13 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     let investedUsd = 0;
 
     for (const tx of txs) {
-      if (tx.type === "buy" || tx.type === "transfer_in" || tx.type === "reward") {
+      if (
+        tx.type === "buy" ||
+        tx.type === "transfer_in" ||
+        tx.type === "reward" ||
+        tx.type === "dividend" ||
+        tx.type === "adjustment"
+      ) {
         quantity += tx.quantity;
         if (tx.type === "buy") investedUsd += tx.totalUsd;
       } else if (tx.type === "sell" || tx.type === "transfer_out") {
@@ -152,6 +158,13 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
           investedUsd -= costBasisPerUnit * tx.quantity;
         }
       }
+    }
+
+    const wallet = walletByAsset.get(asset.ticker.toUpperCase());
+    const apiQty = walletTotal(wallet);
+    if (asset.class === "stable" && apiQty > 1e-12) {
+      quantity = apiQty;
+      if (investedUsd <= 1e-12) investedUsd = apiQty;
     }
 
     if (Math.abs(quantity) < 1e-12 && investedUsd === 0) continue;
@@ -167,8 +180,6 @@ export async function getPortfolioDashboard(): Promise<DashboardKpis> {
     const marketValueUsd = priceUsd !== null ? quantity * priceUsd : investedUsd;
     const pnlUsd = marketValueUsd - investedUsd;
     const pnlPct = investedUsd !== 0 ? (pnlUsd / investedUsd) * 100 : 0;
-
-    const wallet = walletByAsset.get(asset.ticker.toUpperCase());
     holdings.push({
       assetId: asset.id,
       ticker: asset.ticker,
@@ -476,6 +487,20 @@ function walletSlices(
   return out;
 }
 
+function walletTotal(
+  wallet:
+    | {
+        spot: number;
+        earn: number;
+        funding: number;
+        collateral: number;
+      }
+    | undefined,
+): number {
+  if (!wallet) return 0;
+  return wallet.spot + wallet.earn + wallet.funding + wallet.collateral;
+}
+
 function displayQty(
   wallet:
     | {
@@ -487,9 +512,7 @@ function displayQty(
     | undefined,
   ledgerQty: number,
 ): number {
-  if (!wallet) return ledgerQty;
-  const api =
-    wallet.spot + wallet.earn + wallet.funding + wallet.collateral;
+  const api = walletTotal(wallet);
   return api > 1e-12 ? api : ledgerQty;
 }
 
