@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { apiCredentials } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+export const maxDuration = 60;
+
 function authorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return process.env.NODE_ENV !== "production";

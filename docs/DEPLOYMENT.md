@@ -39,7 +39,7 @@ Land payment receipt **files** live under `/data/receipts` and do not upload wit
 
 ## Vercel
 
-1. Import https://github.com/Renevc14/FinancesTracker (framework Next.js, region `iad1`, see `vercel.json`).
+1. Import https://github.com/Renevc14/FinancesTracker (framework Next.js, region `fra1` so Binance is not geo-blocked, see `vercel.json`).
 2. Set Production env vars (see [ENVIRONMENT.md](./ENVIRONMENT.md)).
 3. Production `AUTH_URL` = `https://<project>.vercel.app` (or the custom domain).
 4. Set `CRON_SECRET` so `/api/cron/daily` only runs from Vercel Cron (06:05 UTC).

@@ -419,10 +419,22 @@ export async function runManualSyncAction(
   try {
     const { runSync } = await import("@/lib/exchanges/sync-manager");
     const id = await runSync(credentialId, "manual");
+    const { syncJobs } = await import("@/lib/db/schema");
+    const [job] = await db
+      .select()
+      .from(syncJobs)
+      .where(eq(syncJobs.id, id))
+      .limit(1);
     revalidatePath("/sync");
     revalidatePath("/reconciliation");
     revalidatePath("/dashboard");
     revalidatePath("/transactions");
+    if (job?.status === "failed") {
+      return {
+        ok: false,
+        error: job.errors?.[0] ?? "Binance connection failed",
+      };
+    }
     return { ok: true, data: { id } };
   } catch (err) {
     return {

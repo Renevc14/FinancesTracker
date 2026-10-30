@@ -40,21 +40,40 @@ function asRows(data: unknown): Array<Record<string, unknown>> {
   return [];
 }
 
-function binanceError(data: unknown, httpStatus: number): string | null {
+const RESTRICTED_MSG =
+  "Binance blocked this server IP (restricted location). Production must not run in a US Vercel region — use fra1, not iad1.";
+
+function looksRestricted(text: string, httpStatus: number): boolean {
+  return (
+    httpStatus === 451 ||
+    /restricted location|unavailable for legal reasons|eligibility/i.test(text)
+  );
+}
+
+function binanceError(data: unknown, httpStatus: number, rawText = ""): string | null {
+  if (looksRestricted(rawText, httpStatus)) return RESTRICTED_MSG;
   if (data && typeof data === "object") {
     const rec = data as { code?: unknown; msg?: unknown };
+    const msg = String(rec.msg ?? "");
+    if (looksRestricted(msg, httpStatus)) return RESTRICTED_MSG;
     const code = Number(rec.code);
     if (Number.isFinite(code) && code < 0) {
-      return String(rec.msg ?? `Binance code ${code}`);
+      return msg || `Binance code ${code}`;
     }
   }
   if (httpStatus >= 400) {
     if (data && typeof data === "object" && "msg" in data) {
       return String((data as { msg?: unknown }).msg ?? `Binance HTTP ${httpStatus}`);
     }
-    return `Binance HTTP ${httpStatus}`;
+    return rawText
+      ? `Binance HTTP ${httpStatus}: ${rawText.slice(0, 160)}`
+      : `Binance HTTP ${httpStatus}`;
   }
   return null;
+}
+
+function isTimestampSkew(message: string): boolean {
+  return /timestamp/i.test(message) && /ahead|recvWindow|outside/i.test(message);
 }
 
 export function binanceSpotSymbolsFor(tickers: string[]): string[] {
@@ -75,6 +94,8 @@ export function isStableCoin(ticker: string): boolean {
 
 export class BinanceClient implements ExchangeClient {
   readonly providerName = "binance";
+  private timeOffsetMs = 0;
+  private timeSynced = false;
 
   constructor(
     private readonly apiKey: string,
@@ -114,13 +135,19 @@ export class BinanceClient implements ExchangeClient {
   async getTrades(symbols: string[]): Promise<Trade[]> {
     const sinceMs = portfolioStartMs();
     const out: Trade[] = [];
+    const failures: string[] = [];
     for (const symbol of symbols) {
       try {
         const rows = await this.getAllTrades(symbol, sinceMs);
         out.push(...rows);
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        failures.push(`${symbol}: ${message}`);
         console.error("[binance myTrades]", symbol, err);
       }
+    }
+    if (out.length === 0 && failures.length > 0) {
+      throw new Error(`Binance myTrades failed: ${failures.join(" · ")}`);
     }
     return out;
   }
@@ -163,7 +190,7 @@ export class BinanceClient implements ExchangeClient {
       "/sapi/v1/simple-earn/flexible/position",
       "/sapi/v1/simple-earn/locked/position",
     ]) {
-      await sleep(200);
+      await sleep(80);
       const data = await this.signedRequest("GET", path, {
         current: "1",
         size: "100",
@@ -184,20 +211,20 @@ export class BinanceClient implements ExchangeClient {
   }
 
   private async getFundingBalances(): Promise<Balance[]> {
-    await sleep(200);
+    await sleep(80);
     const data = await this.signedRequest("POST", "/sapi/v1/asset/get-funding-asset");
     return rawToBalances(Array.isArray(data) ? data : asRows(data));
   }
 
   private async getLoans(): Promise<LoanPosition[]> {
     const out: LoanPosition[] = [];
-    await sleep(200);
+    await sleep(80);
     const flex = await this.signedRequest("GET", "/sapi/v2/loan/flexible/ongoing/orders", {
       current: "1",
       limit: "100",
     });
     out.push(...parseLoans(asRows(flex), "flexible"));
-    await sleep(200);
+    await sleep(80);
     try {
       const stable = await this.signedRequest("GET", "/sapi/v1/loan/ongoing/orders", {
         current: "1",
@@ -224,7 +251,7 @@ export class BinanceClient implements ExchangeClient {
         flexPath,
         { type: rewardType },
         sinceMs,
-        30,
+        89,
         (row) => pushReward(out, row, `flex:${rewardType}`, sinceMs),
         warnings,
       );
@@ -233,7 +260,7 @@ export class BinanceClient implements ExchangeClient {
       lockedPath,
       {},
       sinceMs,
-      30,
+      89,
       (row) => pushReward(out, row, "locked", sinceMs),
       warnings,
     );
@@ -269,7 +296,7 @@ export class BinanceClient implements ExchangeClient {
     for (let start = sinceMs; start < now; start += windowMs) {
       const end = Math.min(start + windowMs - 1, now);
       for (let page = 1; page <= 20; page++) {
-        await sleep(200);
+        await sleep(80);
         const query: Record<string, string> = {
           ...extra,
           startTime: String(start),
@@ -329,7 +356,7 @@ export class BinanceClient implements ExchangeClient {
       const lastId = Number(list[list.length - 1]?.id);
       if (!Number.isFinite(lastId)) break;
       fromId = String(lastId + 1);
-      await sleep(250);
+      await sleep(80);
     }
     return out;
   }
@@ -349,12 +376,36 @@ export class BinanceClient implements ExchangeClient {
     }
   }
 
+  private async ensureServerTime(): Promise<void> {
+    if (this.timeSynced) return;
+    const res = await fetch(`${BASE}/api/v3/time`);
+    const text = await res.text();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    const serverTime =
+      json && typeof json === "object"
+        ? Number((json as { serverTime?: unknown }).serverTime)
+        : NaN;
+    if (!Number.isFinite(serverTime)) {
+      const err = binanceError(json, res.status, text);
+      throw new Error(err ?? `Could not read Binance server time (HTTP ${res.status})`);
+    }
+    this.timeOffsetMs = serverTime - Date.now();
+    this.timeSynced = true;
+  }
+
   private async signedRequest(
     method: "GET" | "POST",
     path: string,
     extra: Record<string, string> = {},
+    retried = false,
   ): Promise<unknown> {
-    const timestamp = Date.now() - 3000;
+    await this.ensureServerTime();
+    const timestamp = Date.now() + this.timeOffsetMs;
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(extra)) {
       if (value !== "") params.set(key, value);
@@ -369,9 +420,21 @@ export class BinanceClient implements ExchangeClient {
       method,
       headers: { "X-MBX-APIKEY": this.apiKey },
     });
-    const json: unknown = await res.json();
-    const err = binanceError(json, res.status);
-    if (err) throw new Error(err);
+    const text = await res.text();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    const err = binanceError(json, res.status, text);
+    if (err) {
+      if (!retried && isTimestampSkew(err)) {
+        this.timeSynced = false;
+        return this.signedRequest(method, path, extra, true);
+      }
+      throw new Error(err);
+    }
     return json;
   }
 }

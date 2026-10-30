@@ -8,9 +8,12 @@ import { formatDate } from "@/lib/utils";
 const JOB_STATUS: Record<string, string> = {
   success: "Done",
   partial: "Partial",
+  failed: "Failed",
   error: "Error",
   running: "Running",
 };
+
+export const maxDuration = 60;
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +68,10 @@ export default async function SyncPage() {
                   {formatDate(j.startedAt.slice(0, 10))} · {j.triggeredBy}
                 </p>
               </div>
-              <p className="text-[13px] text-[var(--muted)]">
-                {j.recordsFetched} fetch
+              <p className="max-w-[200px] text-right text-[13px] text-[var(--muted)]">
+                {j.errors && j.errors.length > 0
+                  ? j.errors[0]
+                  : `${j.recordsFetched} fetch`}
               </p>
             </li>
           ))}

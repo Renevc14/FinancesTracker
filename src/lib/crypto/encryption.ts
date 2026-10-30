@@ -16,12 +16,20 @@ export function encryptSecret(plaintext: string): string {
 
 export function decryptSecret(payload: string): string {
   const [ivB64, tagB64, dataB64] = payload.split(".");
-  if (!ivB64 || !tagB64 || !dataB64) throw new Error("Credencial corrupta");
-  const key = envelopeKey();
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
-  decipher.setAuthTag(Buffer.from(tagB64, "base64"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(dataB64, "base64")),
-    decipher.final(),
-  ]).toString("utf8");
+  if (!ivB64 || !tagB64 || !dataB64) {
+    throw new Error("API credential is corrupt. Save the Binance key again.");
+  }
+  try {
+    const key = envelopeKey();
+    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
+    decipher.setAuthTag(Buffer.from(tagB64, "base64"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(dataB64, "base64")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch {
+    throw new Error(
+      "Could not decrypt API credentials. AUTH_SECRET may have changed — save the Binance key again in Settings.",
+    );
+  }
 }
