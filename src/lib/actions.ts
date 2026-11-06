@@ -17,6 +17,7 @@ import {
   landPaymentUpdateSchema,
   transactionFormSchema,
   personalLoanFormSchema,
+  monthlySalaryFormSchema,
 } from "@/lib/validators";
 import {
   createLandPayment,
@@ -563,17 +564,25 @@ export async function saveFireConfigAction(formData: FormData): Promise<ActionRe
 export async function saveMonthlySalaryAction(
   formData: FormData,
 ): Promise<ActionResult> {
-  const amount = Number(formData.get("monthlySalaryUsd"));
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { ok: false, error: "Invalid salary" };
+  const parsed = monthlySalaryFormSchema.safeParse({
+    monthlySalaryUsd: formData.get("monthlySalaryUsd"),
+    fromMonth: formData.get("fromMonth"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid salary" };
   }
-  await db
-    .update(userConfig)
-    .set({
-      monthlySalaryUsd: amount,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(userConfig.id, "default"));
+  try {
+    const { applySalaryFromMonth } = await import("@/lib/services/savings");
+    await applySalaryFromMonth(
+      parsed.data.monthlySalaryUsd,
+      parsed.data.fromMonth,
+    );
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not save salary",
+    };
+  }
   revalidatePath("/dashboard");
   revalidatePath("/settings");
   revalidatePath("/settings/income");

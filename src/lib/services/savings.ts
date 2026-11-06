@@ -1,6 +1,11 @@
-import { isNull } from "drizzle-orm";
+import { and, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { incomeMonths, landPayments, transactions } from "@/lib/db/schema";
+import {
+  incomeMonths,
+  landPayments,
+  transactions,
+  userConfig,
+} from "@/lib/db/schema";
 import { PORTFOLIO_START_DATE } from "@/lib/exchanges/binance";
 import { formatMonthYear, localISODate } from "@/lib/utils";
 
@@ -23,11 +28,14 @@ export type SavingsSummary = {
 };
 
 function yearMonthsThrough(endDate: string): string[] {
-  const start = PORTFOLIO_START_DATE.slice(0, 7);
-  const end = endDate.slice(0, 7);
+  return yearMonthsBetween(PORTFOLIO_START_DATE.slice(0, 7), endDate.slice(0, 7));
+}
+
+export function yearMonthsBetween(start: string, end: string): string[] {
   const out: string[] = [];
   let [y, m] = start.split("-").map(Number);
   const [ey, em] = end.split("-").map(Number);
+  if (!y || !m || !ey || !em || start > end) return out;
   while (y < ey || (y === ey && m <= em)) {
     out.push(`${y}-${String(m).padStart(2, "0")}`);
     m += 1;
@@ -37,6 +45,23 @@ function yearMonthsThrough(endDate: string): string[] {
     }
   }
   return out;
+}
+
+export function monthBefore(yearMonth: string): string | null {
+  const [y, m] = yearMonth.split("-").map(Number);
+  if (!y || !m) return null;
+  if (m === 1) return `${y - 1}-12`;
+  return `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
+function lastAmountBefore(
+  rows: Array<{ yearMonth: string; amountUsd: number }>,
+  fromMonth: string,
+): number | null {
+  const prior = rows
+    .filter((row) => row.yearMonth < fromMonth)
+    .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+  return prior.at(-1)?.amountUsd ?? null;
 }
 
 function ratioPct(invested: number, salary: number): number {
@@ -103,4 +128,48 @@ export async function getSavingsSummary(): Promise<SavingsSummary> {
     totalRatioPct: ratioPct(totalInvestedUsd, totalSalaryUsd),
     monthlySalaryUsd,
   };
+}
+
+export async function applySalaryFromMonth(amountUsd: number, fromMonth: string) {
+  const start = PORTFOLIO_START_DATE.slice(0, 7);
+  const today = localISODate().slice(0, 7);
+  if (fromMonth < start || fromMonth > today) {
+    throw new Error("Pick a month in the tracked range");
+  }
+
+  const config = await db.query.userConfig.findFirst();
+  const currentDefault = config?.monthlySalaryUsd ?? 2060;
+  const existing = await db.select().from(incomeMonths);
+  const previous =
+    Math.abs(currentDefault - amountUsd) > 1e-9
+      ? currentDefault
+      : (lastAmountBefore(existing, fromMonth) ?? 2060);
+
+  const freezeUntil = monthBefore(fromMonth);
+  if (freezeUntil && freezeUntil >= start) {
+    const have = new Set(existing.map((row) => row.yearMonth));
+    for (const yearMonth of yearMonthsBetween(start, freezeUntil)) {
+      if (have.has(yearMonth)) continue;
+      await db.insert(incomeMonths).values({
+        yearMonth,
+        amountUsd: previous,
+        source: "salary",
+        notes: `Salary before ${formatMonthYear(`${fromMonth}-01`)}`,
+      });
+    }
+  }
+
+  await db
+    .delete(incomeMonths)
+    .where(
+      and(eq(incomeMonths.source, "salary"), gte(incomeMonths.yearMonth, fromMonth)),
+    );
+
+  await db
+    .update(userConfig)
+    .set({
+      monthlySalaryUsd: amountUsd,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(userConfig.id, "default"));
 }

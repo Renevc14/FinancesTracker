@@ -63,6 +63,13 @@ export const assetFormSchema = z.object({
 
 export type AssetFormValues = z.infer<typeof assetFormSchema>;
 
+export const monthlySalaryFormSchema = z.object({
+  monthlySalaryUsd: z.coerce.number().positive(),
+  fromMonth: z.string().regex(/^\d{4}-\d{2}$/, "Pick a month"),
+});
+
+export type MonthlySalaryFormValues = z.infer<typeof monthlySalaryFormSchema>;
+
 export const displayCurrencySchema = z.enum(displayCurrencies);
 
 export const priceSnapshotFormSchema = z.object({

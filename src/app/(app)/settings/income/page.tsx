@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { SalaryConfigForm } from "@/components/forms/salary-config-form";
-import { db } from "@/lib/db";
-import { incomeMonths } from "@/lib/db/schema";
-import { getSavingsSummary } from "@/lib/services/savings";
-import { formatMoney, formatMonthYear } from "@/lib/utils";
+import { getSavingsSummary, monthBefore } from "@/lib/services/savings";
+import { formatMoney } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function IncomeSettingsPage() {
   const savings = await getSavingsSummary();
-  const invoices = await db.select().from(incomeMonths);
+  const previous = monthBefore(savings.current.yearMonth);
+  const fromMonth =
+    previous && previous >= savings.months[0]!.yearMonth
+      ? previous
+      : savings.current.yearMonth;
 
   return (
     <div className="space-y-6">
@@ -21,30 +23,32 @@ export default async function IncomeSettingsPage() {
       </div>
 
       <section className="ios-group p-4">
-        <SalaryConfigForm amount={savings.monthlySalaryUsd} />
+        <SalaryConfigForm
+          amount={savings.monthlySalaryUsd}
+          fromMonth={fromMonth}
+          months={savings.months.map((month) => ({
+            value: month.yearMonth,
+            label: month.label,
+          }))}
+        />
       </section>
 
       <section className="space-y-2">
-        <p className="ios-section-label">Invoices</p>
+        <p className="ios-section-label">By month</p>
         <ul className="ios-group">
-          {invoices
-            .slice()
-            .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
-            .map((row) => (
-              <li key={row.id} className="ios-row">
-                <div>
-                  <p className="ios-headline">
-                    {formatMonthYear(`${row.yearMonth}-01`)}
-                  </p>
-                  <p className="text-[13px] text-[var(--muted)]">
-                    {row.notes ?? "Invoice"}
-                  </p>
-                </div>
-                <p className="money text-[17px] font-semibold">
-                  {formatMoney(row.amountUsd, "USD")}
+          {savings.months.map((month) => (
+            <li key={month.yearMonth} className="ios-row">
+              <div>
+                <p className="ios-headline">{month.label}</p>
+                <p className="text-[13px] text-[var(--muted)]">
+                  {month.source === "invoice" ? "Invoice" : "Salary"}
                 </p>
-              </li>
-            ))}
+              </div>
+              <p className="money text-[17px] font-semibold">
+                {formatMoney(month.salaryUsd, "USD")}
+              </p>
+            </li>
+          ))}
         </ul>
       </section>
     </div>
