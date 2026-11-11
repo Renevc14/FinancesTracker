@@ -9,6 +9,9 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 
 ### Added
 
+- Salary changes apply from a chosen month; earlier uninvoiced months keep the previous rate
+- USDC/USDT wallet balances counted in NAV (Spot + Earn + Funding + collateral)
+- Docs for changing computers (`docs/NEW_MACHINE.md`) and a complete agent handoff (no chat history)
 - GitHub Actions CI (lint, build) and Vercel production config (Turso, daily cron, main-only deploys)
 - Vercel build uses Turso env aliases and does not run `drizzle-kit push`
 - Home no longer backfills CoinGecko/Yahoo history on every load (avoids Vercel timeouts)
@@ -32,6 +35,7 @@ versioning follows [Semantic Versioning](https://semver.org/) where practical.
 
 ### Changed
 
+- Vercel functions run in Frankfurt (`fra1`) so Binance is not geo-blocked; sync uses Binance server time
 - Binance Spot (`myTrades` USDT/USDC) es la fuente de verdad de compras y ventas de criptos del catálogo; el sync sustituye el libro local de esos activos
 - El libro Spot empieza el 1 feb 2026; fills anteriores de Binance se ignoran y se archivan
 - Binance Earn, Funding y préstamos: el patrimonio descuenta la deuda; la reconcilación mira Spot+Earn+colateral

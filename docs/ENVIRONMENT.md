@@ -17,7 +17,7 @@ cp .env.example .env.local
 | `DATABASE_AUTH_TOKEN` | Turso only | `eyJ…` | Required for remote LibSQL |
 | `TURSO_DATABASE_URL` | prod alias | `libsql://xxx.turso.io` | Used if `DATABASE_URL` is unset (Vercel/Turso integration) |
 | `TURSO_AUTH_TOKEN` | prod alias | `eyJ…` | Used if `DATABASE_AUTH_TOKEN` is unset |
-| `AUTH_SECRET` | yes | random 32+ bytes | `openssl rand -base64 32` |
+| `AUTH_SECRET` | yes | random 32+ bytes | `openssl rand -base64 32`. **Same value encrypts Binance API keys.** Must match the DB you point at. Do not leave the `.env.example` placeholder. |
 | `AUTH_USERNAME` | yes | `rene` | Single user |
 | `AUTH_PASSWORD` | yes | strong password | Change from example defaults |
 | `AUTH_TRUST_HOST` | prod | `true` | Required on Vercel |
@@ -34,6 +34,8 @@ openssl rand -base64 32
 ## Vercel
 
 Set Production (not Preview) in Project → Settings → Environment Variables. Preview deploys from non-`main` branches are skipped in `vercel.json`.
+
+`vercel env pull` often writes `[SENSITIVE]` placeholders for Turso tokens. Copy real values from the Vercel dashboard or Turso CLI. See [NEW_MACHINE.md](./NEW_MACHINE.md).
 
 ## Cloud Agent secrets
 

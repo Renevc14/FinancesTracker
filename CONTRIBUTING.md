@@ -17,6 +17,7 @@ npm run build
 5. Update `CHANGELOG.md` under `[Unreleased]` when behavior changes
 6. Open PR into `main` (or push `main` directly for solo work)
 7. Do not commit secrets, SQLite files, or `.env.local`
+8. New machine: `docs/NEW_MACHINE.md` — clone as **Renevc14**, copy env from Vercel/Turso, never from chat
 
 ## Code style
 

@@ -5,9 +5,10 @@ Tracker patrimonial **personal** (un solo usuario, no multi-tenant / no SaaS) pa
 | | |
 |---|---|
 | **Repositorio** | https://github.com/Renevc14/FinancesTracker |
-| **Owner** | [Renevc14](https://github.com/Renevc14) |
-| **Stack** | Next.js 16 · React 19 · Drizzle · LibSQL/SQLite · Auth.js |
-| **Estado** | Fase 0–1 MVP usable en local |
+| **Owner / push** | [Renevc14](https://github.com/Renevc14) (`Renevc591` no tiene write) |
+| **Producción** | https://finances-tracker-eight.vercel.app |
+| **Stack** | Next.js 16 · React 19 · Drizzle · LibSQL (SQLite local / Turso prod) · Auth.js |
+| **Estado** | En producción (Vercel `fra1` + Turso). Local es opcional. |
 | **Licencia** | Privado / uso personal |
 
 ---
@@ -40,7 +41,9 @@ Tracker patrimonial **personal** (un solo usuario, no multi-tenant / no SaaS) pa
 - Snapshots patrimoniales mensuales (manuales)
 - Catálogo de activos + tipos de cambio (FX)
 - UI mobile-first estilo Apple HIG
-- Capa de import tipada (Binance Spot operativo; Auto-Invest e IBKR como stubs)
+- Sync Binance (Spot/Earn/Funding/préstamos) y USDC/USDT en el patrimonio desde wallets
+- Salario con “aplica desde” (meses anteriores congelados)
+- Capa de import tipada (API Binance operativa; CSV/Auto-Invest/IBKR como stubs de UI)
 
 ---
 
@@ -73,14 +76,13 @@ El contenedor aplica `db:push`, hace seed la primera vez y sirve **http://localh
 docker compose down
 ```
 
-### Windows sin Docker (ruta habitual del owner)
+Cambio de PC: [docs/NEW_MACHINE.md](docs/NEW_MACHINE.md). Los secretos y `/data` **no** están en git.
+
+### Windows sin Docker
 
 ```powershell
-cd "F:\DOCUMENTOS IMPORTANTES\FinancesTracker"
-git clone https://github.com/Renevc14/FinancesTracker.git .
-# Si la carpeta ya tiene git:
-# git checkout main
-# git pull origin main
+git clone https://github.com/Renevc14/FinancesTracker.git
+cd FinancesTracker
 
 Copy-Item .env.example .env.local
 # Editar .env.local (AUTH_SECRET, usuario y contraseña)
@@ -162,17 +164,24 @@ npx tsx scripts/import-sheet-csv.ts <archivo.csv>
 | `/dashboard` | Resumen patrimonial |
 | `/transactions` | Lista de movimientos |
 | `/transactions/new` | Alta de transacción |
-| `/transactions/import` | Import CSV (capa defensiva) |
+| `/transactions/import` | Import CSV (**UI stub**; el camino real es Sync) |
 | `/land` | Listado de lotes |
 | `/land/[id]` | Detalle (Estado / Contrato / Pagos / Cronograma) |
 | `/land/[id]/payments/new` | Nuevo pago de terreno |
-| `/loans` | Préstamos hechos y deudas |
+| `/loans` | Préstamos hechos y deudas Binance |
 | `/loans/new` | Registrar un préstamo |
+| `/sync` | Sync de exchanges + historial de jobs |
+| `/reconciliation` | Deriva API vs libro |
+| `/fire` | FIRE |
+| `/compliance` | Modelo 720/721 |
 | `/snapshots` | Fotos mensuales (desde Ajustes) |
 | `/snapshots/[date]` | Detalle de snapshot |
 | `/settings` | Ajustes |
+| `/settings/income` | Salario (aplica desde un mes) |
 | `/settings/assets` | Catálogo de activos |
 | `/settings/fx` | Tipos de cambio |
+| `/settings/credentials` | API keys cifradas |
+| `/settings/banks` | Cuentas bancarias |
 
 Las rutas bajo `(app)` requieren sesión; sin auth redirigen a `/login`.
 
@@ -218,11 +227,13 @@ La carpeta `/data` y `*.db` están en `.gitignore`.
 
 | Origen | Estado |
 |--------|--------|
-| Binance Spot | API `myTrades` (fuente de verdad BTC/ETH/SOL USDT+USDC desde feb 2026) + Earn/Funding/préstamos + parser CSV fallback |
+| Binance Spot | API `myTrades` (BTC/ETH/SOL desde feb 2026) + Earn/Funding/préstamos. USDC/USDT al NAV desde wallets. Parser CSV existe, UI de upload no. |
 | Binance Auto-Invest | Stub tipado |
 | IBKR Flex | Stub tipado |
 
-Punto de entrada: `src/lib/imports/`. UI: `/transactions/import`.
+Camino vivo: Settings → Sync. Parsers: `src/lib/imports/`. UI `/transactions/import` aún no sube archivos.
+
+Funciones Vercel en **Frankfurt (`fra1`)** — Binance bloquea EE.UU. (HTTP 451).
 
 ---
 
@@ -230,8 +241,9 @@ Punto de entrada: `src/lib/imports/`. UI: `/transactions/import`.
 
 Checklist Vercel + Turso: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+- Producción: https://finances-tracker-eight.vercel.app
 - GitHub Actions: lint y build en PRs y `main` (`.github/workflows/ci.yml`)
-- Vercel despliega solo `main`; el cron diario llama `/api/cron/daily` a las 06:05 UTC
+- Vercel despliega solo `main`; región `fra1`; cron `5 6 * * *` UTC → `/api/cron/daily`
 - Producción usa Turso (`libsql://…`), no el SQLite local
 
 ---
@@ -240,10 +252,10 @@ Checklist Vercel + Turso: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 | Fase | Contenido |
 |------|-----------|
-| **0–1** (actual) | Auth, CRUD, land, dashboard, snapshots, FX manual, imports defensivos |
-| **2** | FX/precios API, parsers Auto-Invest + IBKR, cron snapshots, TOTP |
-| **3** | Compliance España 720/721, FIRE |
-| **4** | Notificaciones, backup, PWA, export PDF |
+| **0–1** | Auth, CRUD, land, dashboard, snapshots, imports defensivos |
+| **2** (en curso) | Precios API, Binance live, cron, TOTP, salario, FIRE/720 — **hecho en prod**. Pendiente: UI CSV, depósitos/retiros on-chain, Auto-Invest/IBKR reales |
+| **3** | Compliance España 720/721 más allá de imprimir |
+| **4** | Push nativas, export PDF |
 
 Historial de cambios: [CHANGELOG.md](CHANGELOG.md).
 
@@ -254,7 +266,8 @@ Historial de cambios: [CHANGELOG.md](CHANGELOG.md).
 | Doc | Contenido |
 |-----|-----------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Capas, módulos, flujos |
-| [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) | Contexto para Cloud/Desktop Agents |
+| [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) | Contexto para Cloud/Desktop Agents (sin historial de chat) |
+| [docs/NEW_MACHINE.md](docs/NEW_MACHINE.md) | Cambio de PC, secretos, Turso vs sqlite |
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Env vars y secretos |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel + Turso |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Flujo de trabajo local |
@@ -285,7 +298,6 @@ Prompt sugerido para el siguiente agente:
 
 ```text
 Repo: https://github.com/Renevc14/FinancesTracker (rama main).
-Lee README.md y docs/AGENT_HANDOFF.md.
-Arranca en local (db:push, db:seed, npm run dev) y continúa el backlog de Fase 2
-salvo que el usuario indique otra prioridad.
+Lee README.md, docs/AGENT_HANDOFF.md, docs/NEW_MACHINE.md y docs/ARCHITECTURE.md.
+Single-user. Producción: Vercel fra1 + Turso. No commitees .env.local ni /data.
 ```

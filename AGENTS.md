@@ -15,5 +15,6 @@ Before changing product code, read:
 1. `README.md`
 2. `docs/AGENT_HANDOFF.md`
 3. `docs/ARCHITECTURE.md`
+4. `docs/NEW_MACHINE.md` on a new computer (secrets are not in git)
 
 Single-user personal finance app — do not introduce multi-tenant SaaS patterns.

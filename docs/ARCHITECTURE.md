@@ -15,7 +15,8 @@ Single-user wealth tracker. One authenticated owner. No multi-tenancy, billing, 
 │  Zod validators                             │
 ├─────────────────────────────────────────────┤
 │  Domain services                            │
-│  portfolio · land · snapshot · fx           │
+│  portfolio · land · snapshot · fx · savings │
+│  exchanges/binance + sync-manager           │
 ├─────────────────────────────────────────────┤
 │  Drizzle ORM                                │
 │  LibSQL client → SQLite file or Turso       │
@@ -34,9 +35,12 @@ Single-user wealth tracker. One authenticated owner. No multi-tenancy, billing, 
 | `src/lib/actions.ts` | Mutations: transactions, land payments, snapshots, settings |
 | `src/lib/validators.ts` | Zod schemas |
 | `src/lib/db/schema.ts` | Tables and relations |
-| `src/lib/services/*` | Read models / aggregations for dashboard, land, personal loans |
-| `src/lib/imports/*` | Broker CSV contracts, parsers, dedupe |
+| `src/lib/services/*` | Read models: dashboard, land, personal loans, savings |
+| `src/lib/exchanges/binance.ts` | Signed Binance client (server time, 451, myTrades, Earn) |
+| `src/lib/exchanges/sync-manager.ts` | Sync jobs, wallets, recon, Accept API |
+| `src/lib/imports/*` | Broker CSV contracts, parsers, dedupe (UI upload not wired) |
 | `src/components/layout/app-shell.tsx` | Tab bar + large titles |
+| `vercel.json` | Region `fra1`, daily cron, main-only deploys |
 
 ## Data model (conceptual)
 
@@ -47,7 +51,10 @@ Single-user wealth tracker. One authenticated owner. No multi-tenancy, billing, 
 - **Price snapshots** — asset prices at a point in time
 - **Monthly snapshots** — frozen portfolio valuation (UI under Ajustes → Fotos)
 - **Personal loans** — money lent to others; off-balance (never in NAV, allocation, history, or savings ratio)
-- **User config** — preferences
+- **User config** — preferences including current `monthlySalaryUsd`
+- **Income months** — invoice or frozen salary rows; default salary applies from a chosen month
+- **Exchange credentials** — AES-256-GCM with `AUTH_SECRET`
+- **Sync jobs / wallet snapshots / recon items** — last Binance run
 
 Soft-delete is used where applicable. Import rows dedupe on `(importedFrom, importRef)`.
 
@@ -62,18 +69,22 @@ Soft-delete is used where applicable. Import rows dedupe on `(importedFrom, impo
 
 Portfolio values can be displayed in USD, EUR, or BOB using stored FX. Toggle is client UI; conversions happen in services.
 
-## Import pipeline
+## Import / sync pipeline
 
-1. **Binance Spot (source of truth for catalog crypto):** `/sync` paginates `/api/v3/myTrades` for `{TICKER}USDT` and `{TICKER}USDC` from **2026-02-01** (portfolio start). Older fills are ignored. Buys/sells that are not `binance_api` are soft-deleted only if at least one in-range API fill landed for that asset.
-2. **Binance Earn / loans:** same sync pulls Simple Earn positions + reward history (flexible `type` BONUS/REALTIME/REWARDS, locked, and dividends fallback), Funding wallet, and ongoing crypto loans. Daily Earn credits become `reward` transactions. Reconciliation uses Spot + Earn + Funding + collateral. NAV subtracts outstanding loan debt.
-3. Upload / paste CSV on `/transactions/import` (fallback, plus Auto-Invest / IBKR)
-4. Parser selected by source (`binance/spot`, Auto-Invest, IBKR)
-5. Validate rows → typed `ImportRow` contracts
-6. Dedupe against DB → insert transactions
+1. **Binance Spot (source of truth for catalog crypto):** `/sync` (and daily cron) paginates `/api/v3/myTrades` for `{TICKER}USDT` and `{TICKER}USDC` from **2026-02-01**. Signed timestamps come from `/api/v3/time`. Older fills are ignored. Non-`binance_api` buys/sells are soft-deleted only after an in-range API fill lands for that asset.
+2. **Binance Earn / loans / stables:** same job pulls Simple Earn positions + last **90 days** of rewards, Funding, ongoing crypto loans, and wallet totals. Earn credits become `reward` rows. **USDC/USDT NAV uses the wallet snapshot**, not the trade ledger. Reconciliation: Spot + Earn + Funding + collateral; NAV subtracts loan debt.
+3. **Accept API** writes `adjustment` transactions so the book matches the API; those rows count toward quantity.
+4. CSV parsers in `src/lib/imports/` are fallback; **`/transactions/import` has no upload UI yet.**
 
-## Non-goals (current phase)
+Vercel functions **must** run in `fra1`. US regions get HTTP 451 from Binance.
 
-- Multi-user / orgs
-- Live market data (planned Fase 2)
+## Salary
+
+`applySalaryFromMonth` (`src/lib/services/savings.ts`): freeze months before `fromMonth` that lack `income_months` at the previous default; delete salary-source rows from `fromMonth` onward; update `userConfig.monthlySalaryUsd`. Invoice rows stay.
+
+## Non-goals
+
+- Multi-user / orgs / SaaS
 - Full Auto-Invest / IBKR Flex parsers (stubs only)
-- Spanish tax filings automation (Fase 3)
+- Spanish tax filings automation beyond printable 720
+- Native push notifications
